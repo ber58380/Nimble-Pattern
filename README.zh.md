@@ -1,6 +1,6 @@
 # 灵巧样板
 
-    [English](README.md)
+[English](README.md)
 
 Nimble Pattern是[Applied Energistics 2](https://github.com/AppliedEnergistics/Applied-Energistics-2)
 的附属模组，对AE2的样板增添了一些功能以提升游玩体验。

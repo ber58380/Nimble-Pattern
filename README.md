@@ -1,6 +1,6 @@
 # Nimble Pattern
 
-    [简体中文](README.zh.md)
+[简体中文](README.zh.md)
 
 Nimble Pattern is an addon for [Applied Energistics 2](https://github.com/AppliedEnergistics/Applied-Energistics-2),
 adding some features for patterns to improve playing experiences.
@@ -43,11 +43,11 @@ add the following codes in the config file `invtweaks-client.toml`.
 
 ```toml
 [[sorting.containerOverrides]]
-  containerClass = "com.ber.nimblePattern.client.gui.PatternUpgradeTermScreen"
-  sortRange = ""
+containerClass = "com.ber.nimblePattern.client.gui.PatternUpgradeTermScreen"
+sortRange = ""
 [[sorting.containerOverrides]]
-  containerClass = "com.ber.nimblePattern.menu.PatternUpgradeTermMenu"
-  sortRange = ""
+containerClass = "com.ber.nimblePattern.menu.PatternUpgradeTermMenu"
+sortRange = ""
 ```
 
 ## License
