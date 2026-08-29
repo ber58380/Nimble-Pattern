@@ -1,0 +1,10 @@
+{
+  "parent": "ae2:item/display_base",
+  "textures": {
+    "front": "nimble_pattern:part/pattern_upgrade_terminal",
+    "front_bright": "nimble_pattern:part/pattern_upgrade_terminal_bright",
+    "front_medium_bright": "nimble_pattern:part/pattern_upgrade_terminal_medium",
+    "front_medium": "nimble_pattern:part/pattern_upgrade_terminal_medium",
+    "front_dark": "nimble_pattern:part/pattern_upgrade_terminal_dark"
+  }
+}

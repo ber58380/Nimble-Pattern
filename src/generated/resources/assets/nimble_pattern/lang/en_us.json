@@ -1,0 +1,14 @@
+{
+  "gui.nimble_pattern.pattern_upgrade_terminal.apply": "Apply",
+  "gui.nimble_pattern.pattern_upgrade_terminal.clear": "Clear",
+  "gui.nimble_pattern.pattern_upgrade_terminal.conditions": "Upgrade Conditions",
+  "gui.nimble_pattern.pattern_upgrade_terminal.search_tooltip_condition": "Use % to search by conditions (%UHV)",
+  "gui.nimble_pattern.pattern_upgrade_terminal.search_tooltip_status": "Use ~ to search by status (~UPGRADE)",
+  "item.nimble_pattern.pattern_upgrade_terminal": "Pattern Upgrade Terminal",
+  "toast.nimble_pattern.pattern_ugprade_content": "%s obtained, %d related patterns are available for upgrade",
+  "toast.nimble_pattern.pattern_upgrade_title": "Upgrade of patterns are available",
+  "tooltip.nimble_pattern.condition": "Update condition: %s",
+  "tooltip.nimble_pattern.state.LATEST": "Update state: Latest",
+  "tooltip.nimble_pattern.state.UNTRACKED": "Update state: Untracked",
+  "tooltip.nimble_pattern.state.UPDATE": "Update state: Update available"
+}

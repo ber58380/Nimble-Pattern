@@ -1,0 +1,25 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.ber.nimblePattern.mixin",
+  "refmap": "nimble_pattern.refmap.json",
+  "compatibilityLevel": "JAVA_17",
+  "mixins": [
+    "ae2.CraftingCpuLogicMixin",
+    "ae2.EncodedPatternItemMixin",
+    "ae2.NetworkStorageMixin",
+    "ae2.PatternProviderBlockEntityMixin",
+    "ae2.PatternProviderLogicMixin",
+    "ae2.PatternProviderMenuMixin",
+    "ae2.PatternProviderPartMixin"
+  ],
+  "client": [
+    "ae2.PatternProviderScreenMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  },
+  "overwrites": {
+    "requireAnnotations": true
+  }
+}

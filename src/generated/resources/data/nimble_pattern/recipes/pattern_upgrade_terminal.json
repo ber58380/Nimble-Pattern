@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    {
+      "item": "ae2:pattern_access_terminal"
+    },
+    {
+      "item": "ae2:logic_processor"
+    },
+    {
+      "item": "ae2:calculation_processor"
+    }
+  ],
+  "result": {
+    "item": "nimble_pattern:pattern_upgrade_terminal"
+  }
+}
