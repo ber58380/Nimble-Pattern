@@ -79,7 +79,7 @@ side = "BOTH"
 [[dependencies."${mod_id}"]]
 modId = "gtceu"
 mandatory = false
-versionRange = "[1.20.1-1.4.4,)"
+versionRange = "[1.4.4,)"
 ordering = "AFTER"
 side = "BOTH"
 
