@@ -7,11 +7,13 @@ import appeng.core.definitions.AEBlocks;
 import appeng.core.definitions.AEItems;
 import appeng.core.definitions.AEParts;
 import appeng.items.parts.PartModelsHelper;
+import com.ber.nimblePattern.compat.extendedae.ExtendedAECompat;
 import com.ber.nimblePattern.item.ModItems;
 import com.ber.nimblePattern.menu.PatternUpgradeTermMenu;
 import com.ber.nimblePattern.network.NimblePatternNetwork;
 import com.ber.nimblePattern.parts.PatternUpgradeTerminalPart;
 import com.ber.nimblePattern.pattern.PatternUpgradeTracker;
+import com.glodblock.github.extendedae.common.EPPItemAndBlock;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.BuildCreativeModeTabContentsEvent;
 import net.minecraftforge.event.TickEvent;
@@ -50,6 +52,10 @@ public class NimblePattern {
         String patternProviderGroup = "gui.ae2.CraftingInterface";
         Upgrades.add(AEItems.FUZZY_CARD, AEBlocks.PATTERN_PROVIDER, 1, patternProviderGroup);
         Upgrades.add(AEItems.FUZZY_CARD, AEParts.PATTERN_PROVIDER, 1, patternProviderGroup);
+        if (ExtendedAECompat.LOADED) {
+            Upgrades.add(AEItems.FUZZY_CARD, EPPItemAndBlock.EX_PATTERN_PROVIDER, 1, patternProviderGroup);
+            Upgrades.add(AEItems.FUZZY_CARD, EPPItemAndBlock.EX_PATTERN_PROVIDER_PART, 1, patternProviderGroup);
+        }
     }
 
     @SubscribeEvent

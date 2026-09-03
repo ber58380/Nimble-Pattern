@@ -97,6 +97,15 @@ versionRange = "[3.2.8,)"
 ordering = "AFTER"
 side = "BOTH"
 
+[[dependencies."${mod_id}"]]
+modId = "expatternprovider"
+mandatory = false
+versionRange = "[1.20-1.4.19-forge,)"
+ordering = "AFTER"
+side = "BOTH"
+
 # Mixins
 [[mixins]]
 config = "nimble_pattern.mixins.json"
+[[mixins]]
+config = "nimble_pattern.extendedae.mixins.json"

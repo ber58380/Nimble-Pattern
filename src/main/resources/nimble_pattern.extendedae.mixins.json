@@ -1,0 +1,19 @@
+{
+  "required": false,
+  "minVersion": "0.8",
+  "package": "com.ber.nimblePattern.mixin.extendedae",
+  "refmap": "nimble_pattern.refmap.json",
+  "compatibilityLevel": "JAVA_17",
+  "mixins": [
+    "PartExPatternProviderMixin"
+
+  ],
+  "client": [
+  ],
+  "injectors": {
+    "defaultRequire": 0
+  },
+  "overwrites": {
+    "requireAnnotations": true
+  }
+}

@@ -53,3 +53,7 @@ sortRange = ""
 ## License
 
 Source code and assets are all follow the [GNU LGPL3.0](LICENSE) license.
+
+This program uses the API of [Applied Energistics 2](https://github.com/AppliedEnergistics/Applied-Energistics-2).
+Portions of the textures in this mod are derived and redrawn from
+the [AE-Light-UI](https://github.com/LeeQianXi/AE-1.20-UI).

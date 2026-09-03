@@ -18,6 +18,7 @@ import appeng.menu.slot.InaccessibleSlot;
 import appeng.menu.slot.RestrictedInputSlot;
 import appeng.parts.crafting.PatternProviderPart;
 import appeng.util.inv.AppEngInternalInventory;
+import com.ber.nimblePattern.compat.extendedae.ExtendedAECompat;
 import com.ber.nimblePattern.helpers.IPatternUpgradeMenuHost;
 import com.ber.nimblePattern.network.ClearPacket;
 import com.ber.nimblePattern.network.ConditionPacket;
@@ -479,20 +480,35 @@ public class PatternUpgradeTermMenu extends AEBaseMenu {
     @Nullable
     private static ServerLevel getContainerLevel(PatternContainer container) {
         if (container instanceof PatternProviderLogicHost host) {
-            var be = host.getBlockEntity();
-            if (be != null && be.getLevel() instanceof ServerLevel sl) return sl;
+            var block = host.getBlockEntity();
+            if (block != null && block.getLevel() instanceof ServerLevel serverLevel) {
+                return serverLevel;
+            }
         }
+
+        // assembler matrix of extendedAE
+        if (container instanceof BlockEntity block) {
+            if (block.getLevel() instanceof ServerLevel serverLevel) {
+                return serverLevel;
+            }
+        }
+
         try {
             // machine of GT series are wrapped in IMachineBlockEntity
-            var m = container.getClass().getMethod("getLevel");
-            var level = m.invoke(container);
-            if (level instanceof ServerLevel sl) return sl;
+            var machine = container.getClass().getMethod("getLevel");
+            var level = machine.invoke(container);
+            if (level instanceof ServerLevel serverLevel) {
+                return serverLevel;
+            }
         } catch (Exception ignore) {
         }
+
         try {
-            var beMethod = container.getClass().getMethod("getBlockEntity");
-            var be = beMethod.invoke(container);
-            if (be instanceof BlockEntity b && b.getLevel() instanceof ServerLevel sl) return sl;
+            var machine = container.getClass().getMethod("getBlockEntity");
+            var block = machine.invoke(container);
+            if (block instanceof BlockEntity b && b.getLevel() instanceof ServerLevel serverLevel) {
+                return serverLevel;
+            }
         } catch (Exception ignore) {
         }
         return null;
@@ -503,14 +519,21 @@ public class PatternUpgradeTermMenu extends AEBaseMenu {
         if (container instanceof PatternProviderLogicHost host) {
             return host.getBlockEntity().getBlockPos();
         }
+
+        // assembler matrix of extendedAE
+        if (container instanceof BlockEntity block) {
+            return block.getBlockPos();
+        }
+
         try {
-            var m = container.getClass().getMethod("getPos");
-            return (BlockPos) m.invoke(container);
+            var machine = container.getClass().getMethod("getPos");
+            return (BlockPos) machine.invoke(container);
         } catch (Exception ignore) {
         }
+
         try {
-            var m = container.getClass().getMethod("getBlockPos");
-            return (BlockPos) m.invoke(container);
+            var machine = container.getClass().getMethod("getBlockPos");
+            return (BlockPos) machine.invoke(container);
         } catch (Exception ignore) {
         }
         return null;
@@ -520,6 +543,10 @@ public class PatternUpgradeTermMenu extends AEBaseMenu {
     private static Direction getContainerSide(PatternContainer container) {
         if (container instanceof PatternProviderPart pp) {
             return pp.getSide();
+        }
+        // extendedAE's pattern provider part
+        if (ExtendedAECompat.LOADED) {
+            return ExtendedAECompat.getSide(container);
         }
         // all GT series are blocks, not parts
         return null;

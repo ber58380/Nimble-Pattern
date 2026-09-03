@@ -27,7 +27,7 @@ Nimble Pattern是[Applied Energistics 2](https://github.com/AppliedEnergistics/A
 ## 兼容模组
 
 - jecharacters: 样板更新终端内可使用拼音进行搜索
-- gtceu, gtlcore, gtladditions: 支持对样板总成系列和分子操纵者的样板管理
+- gtceu, gtlcore, gtladditions, extendedAE: 支持对样板总成系列、分子操纵者、扩展样板供应器和装配矩阵的样板管理
 
 ## 特别说明
 
@@ -45,4 +45,7 @@ sortRange = ""
 
 ## 许可证
 
-源码和材质均遵循[GNU LGPL3.0](LICENSE)协议开源
+源码和材质均遵循[GNU LGPL3.0](LICENSE)协议开源。
+
+本模组代码使用了[Applied Energistics 2](https://github.com/AppliedEnergistics/Applied-Energistics-2)
+的API，材质文件使用了[AE-Light-UI](https://github.com/LeeQianXi/AE-1.20-UI)的部分文件并基于其设计了部分材质。

@@ -1,28 +1,3 @@
-﻿NimblePattern - An AE2 addon for Minecraft 1.20.1
-Copyright (C) 2026 ber
-
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU Lesser General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-This program uses Applied Energistics 2 API and is an addon for AE2.
-AE2 is Copyright (C) 2013-2024 AlgorithmX2 and contributors,
-licensed under LGPL-3.0 - https://github.com/AppliedEnergistics/Applied-Energistics-2
-
-Portions of the textures in this mod are derived from the AE-Light-UI
-Multi-module resource pack version 3.5.2 by LeeQianXi
-(https://github.com/LeeQianXi/AE-1.20-UI / https://www.curseforge.com/minecraft/texture-packs/ae-light-ui-multi-module),
-licensed under LGPL-3.0. This includes directly copied textures and
-re-drawn derivative textures located in:
-  src/main/resources/assets/nimble_pattern/textures/part/*
-  src/main/resources/assets/nimble_pattern/textures/gui/*
-  src/main/resources/assets/nimble_pattern/textures/guis/*
-  src/main/resources/assets/ae2/screens/terminals/pattern_upgrade_terminal.json
-These portions are used under LGPL-3.0 Sections 2 and 4 (Combined Work).
-A copy of the LGPL-3.0 and GPL-3.0 texts are included below.
-
---------------------------------------------------------------------------------
                    GNU LESSER GENERAL PUBLIC LICENSE
                        Version 3, 29 June 2007
 

@@ -5,6 +5,7 @@ import appeng.api.inventories.InternalInventory;
 import appeng.blockentity.networking.CableBusBlockEntity;
 import appeng.helpers.patternprovider.PatternContainer;
 import com.ber.nimblePattern.NimblePattern;
+import com.ber.nimblePattern.compat.extendedae.ExtendedAECompat;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.registries.Registries;
@@ -102,11 +103,16 @@ public class NimblePatternTag {
             if (block instanceof PatternContainer container) {
                 return container.getTerminalPatternInventory();
             }
-        } else { // parts of pattern provider
+        } else {
             if (block instanceof CableBusBlockEntity cbb) {
                 var part = cbb.getPart(side);
+                // parts of pattern provider
                 if (part instanceof PatternContainer container) {
                     return container.getTerminalPatternInventory();
+                }
+                // parts of extendedAE's pattern provider
+                if (ExtendedAECompat.LOADED) {
+                    return ExtendedAECompat.getTerminalPatternInventory(part);
                 }
             }
         }
