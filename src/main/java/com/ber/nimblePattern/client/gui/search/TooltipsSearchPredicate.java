@@ -1,10 +1,8 @@
 package com.ber.nimblePattern.client.gui.search;
 
 import appeng.api.client.AEKeyRendering;
-import appeng.api.stacks.AEItemKey;
 import appeng.api.stacks.AEKey;
 import appeng.core.AEConfig;
-import appeng.crafting.pattern.EncodedPatternItem;
 import appeng.util.Platform;
 import com.ber.nimblePattern.compat.jecharacters.PinInHelper;
 import net.minecraft.ChatFormatting;
@@ -14,6 +12,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Predicate;
+
+import static com.ber.nimblePattern.client.gui.search.UnwrapHelper.getKey;
 
 final class TooltipsSearchPredicate implements Predicate<ItemStack> {
     private final String tooltip;
@@ -26,8 +26,7 @@ final class TooltipsSearchPredicate implements Predicate<ItemStack> {
 
     @Override
     public boolean test(ItemStack stack) {
-        ItemStack target = stack.getItem() instanceof EncodedPatternItem iep && !iep.getOutput(stack).isEmpty() ? iep.getOutput(stack) : ItemStack.EMPTY;
-        var key = AEItemKey.of(target);
+        AEKey key = getKey(stack);
         if (key == null) {
             return false;
         }

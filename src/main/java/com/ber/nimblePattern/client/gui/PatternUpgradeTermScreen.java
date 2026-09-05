@@ -12,7 +12,6 @@ import appeng.core.AEConfig;
 import appeng.core.localization.GuiText;
 import appeng.core.sync.network.NetworkHandler;
 import appeng.core.sync.packets.InventoryActionPacket;
-import appeng.crafting.pattern.EncodedPatternItem;
 import appeng.helpers.InventoryAction;
 import com.ber.nimblePattern.client.gui.search.PatternSearch;
 import com.ber.nimblePattern.menu.PatternUpgradeTermMenu;
@@ -27,6 +26,7 @@ import net.minecraft.world.item.ItemStack;
 
 import java.util.*;
 
+import static com.ber.nimblePattern.client.gui.search.UnwrapHelper.getDisplayName;
 import static com.ber.nimblePattern.menu.PatternUpgradeTermMenu.VIRTUAL_ID;
 import static com.ber.nimblePattern.menu.PatternUpgradeTermMenu.VIRTUAL_INV;
 
@@ -112,12 +112,7 @@ public class PatternUpgradeTermScreen<C extends PatternUpgradeTermMenu> extends 
                 patterns.add(new PatternRecord(record.getServerId(), i, stack));
             }
         }
-        patterns.sort(Comparator.comparing(pattern -> {
-            var stack = pattern.stack();
-            var output = stack.getItem() instanceof EncodedPatternItem iep ? iep.getOutput(stack) : stack;
-            ItemStack target = !output.isEmpty() ? output : stack;
-            return target.getHoverName().getString().toLowerCase(Locale.ROOT);
-        }));
+        patterns.sort(Comparator.comparing(pattern -> getDisplayName(pattern.stack()).toLowerCase(Locale.ROOT)));
     }
 
     private void updateScrollbar() {

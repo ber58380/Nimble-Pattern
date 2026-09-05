@@ -1,11 +1,12 @@
 package com.ber.nimblePattern.client.gui.search;
 
-import appeng.api.stacks.AEItemKey;
-import appeng.crafting.pattern.EncodedPatternItem;
+import appeng.api.stacks.AEKey;
 import net.minecraft.world.item.ItemStack;
 
 import java.util.Locale;
 import java.util.function.Predicate;
+
+import static com.ber.nimblePattern.client.gui.search.UnwrapHelper.getKey;
 
 final class ItemIdSearchPredicate implements Predicate<ItemStack> {
     private final String term;
@@ -16,8 +17,7 @@ final class ItemIdSearchPredicate implements Predicate<ItemStack> {
 
     @Override
     public boolean test(ItemStack stack) {
-        ItemStack target = stack.getItem() instanceof EncodedPatternItem iep && !iep.getOutput(stack).isEmpty() ? iep.getOutput(stack) : ItemStack.EMPTY;
-        var key = AEItemKey.of(target);
+        AEKey key = getKey(stack);
         if (key == null) {
             return false;
         }

@@ -193,6 +193,8 @@ public class PatternUpgradeTermMenu extends AEBaseMenu {
             NimblePatternTag.tagUpdate(pattern, condition);
             if (NimblePatternTag.pushPatternBack(pattern, getPlayer().getServer())) {
                 inputPatternInv.setItemDirect(i, ItemStack.EMPTY);
+            } else {
+                inputPatternInv.setItemDirect(i, pattern);
             }
         }
     }
