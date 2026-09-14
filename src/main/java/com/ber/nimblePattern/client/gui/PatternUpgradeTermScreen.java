@@ -26,7 +26,6 @@ import net.minecraft.world.item.ItemStack;
 
 import java.util.*;
 
-import static com.ber.nimblePattern.client.gui.search.UnwrapHelper.getDisplayName;
 import static com.ber.nimblePattern.menu.PatternUpgradeTermMenu.VIRTUAL_ID;
 import static com.ber.nimblePattern.menu.PatternUpgradeTermMenu.VIRTUAL_INV;
 
@@ -46,6 +45,10 @@ public class PatternUpgradeTermScreen<C extends PatternUpgradeTermMenu> extends 
     private List<PatternRecord> patterns = new ArrayList<>();
     private Set<String> conditions = new LinkedHashSet<String>();
 
+    // ClearPacket starts a full synchronization batch. Full PatternPackets only
+    // populate byId; PatternSyncCompletePacket rebuilds the expensive global view once.
+    private boolean fullUpdateInProgress = false;
+
     public PatternUpgradeTermScreen(C menu, Inventory playerInventory, Component title, ScreenStyle style) {
         super(menu, playerInventory, title, style);
         this.style = style.getTerminalStyle();
@@ -63,19 +66,31 @@ public class PatternUpgradeTermScreen<C extends PatternUpgradeTermMenu> extends 
                 Component.translatable("gui.nimble_pattern.pattern_upgrade_terminal.search_tooltip_status")
         ));
         this.searchField.setResponder(text -> {
-            updatePatterns();
-            updateScrollbar();
-            updateSlots();
+            if (!fullUpdateInProgress) {
+                rebuildPatternView();
+            }
         });
         this.upgradePanel = new PatternUpgradePanel(this, widgets);
         widgets.add("patternUpgradePanel", this.upgradePanel);
     }
 
     public void clear() {
+        fullUpdateInProgress = true;
         byId.clear();
         patterns.clear();
         menu.slots.removeIf(slot -> slot instanceof PatternUpgradeSlot);
         updateScrollbar();
+    }
+
+    public void finishFullUpdate() {
+        fullUpdateInProgress = false;
+        rebuildPatternView();
+    }
+
+    private void rebuildPatternView() {
+        updatePatterns();
+        updateScrollbar();
+        updateSlots();
     }
 
     @Override
@@ -112,7 +127,7 @@ public class PatternUpgradeTermScreen<C extends PatternUpgradeTermMenu> extends 
                 patterns.add(new PatternRecord(record.getServerId(), i, stack));
             }
         }
-        patterns.sort(Comparator.comparing(pattern -> getDisplayName(pattern.stack()).toLowerCase(Locale.ROOT)));
+        patterns.sort(Comparator.comparing(PatternRecord::sortKey));
     }
 
     private void updateScrollbar() {
@@ -149,12 +164,7 @@ public class PatternUpgradeTermScreen<C extends PatternUpgradeTermMenu> extends 
     public void postFullUpdate(long serverId, int inventorySize, Int2ObjectMap<ItemStack> slots) {
         var record = new PatternContainerRecord(serverId, inventorySize);
         this.byId.put(serverId, record);
-        slots.forEach((key, value) -> {
-            record.getInventory().setItemDirect(key, value);
-        });
-        updatePatterns();
-        updateScrollbar();
-        updateSlots();
+        slots.forEach((key, value) -> record.getInventory().setItemDirect(key, value));
     }
 
     public void postIncrementalUpdate(long serverId, Int2ObjectMap<ItemStack> slots) {
@@ -163,9 +173,9 @@ public class PatternUpgradeTermScreen<C extends PatternUpgradeTermMenu> extends 
             slots.forEach((key, value) -> {
                 record.getInventory().setItemDirect(key, value.isEmpty() ? ItemStack.EMPTY : value);
             });
-            updatePatterns();
-            updateScrollbar();
-            updateSlots();
+            if (!fullUpdateInProgress) {
+                rebuildPatternView();
+            }
         }
     }
 
