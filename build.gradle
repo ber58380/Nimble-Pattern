@@ -162,19 +162,19 @@ dependencies {
 
     runtimeOnly fg.deobf("org.appliedenergistics:guideme:${guideme_version}")
     implementation fg.deobf("appeng:appliedenergistics2-forge:${ae2_version}")
-    compileOnly fg.deobf("curse.maven:just-enough-characters-250702:7411324")
-    runtimeOnly fg.deobf("curse.maven:just-enough-characters-250702:7411324")
+    compileOnly fg.deobf("curse.maven:just-enough-characters-250702:8583972")
+    runtimeOnly fg.deobf("curse.maven:just-enough-characters-250702:8583972")
+    // dependency of extendedAE
     runtimeOnly fg.deobf("curse.maven:glodium-957920:5226922")
     compileOnly fg.deobf("curse.maven:ex-pattern-provider-892005:8615273")
     runtimeOnly fg.deobf("curse.maven:ex-pattern-provider-892005:8615273")
-    runtimeOnly fg.deobf("mezz.jei:jei-${minecraft_version}-forge:${jei_version}")
+    runtimeOnly fg.deobf("mezz.jei:jei-${minecraft_version}-forge:15.20.0.129")
     runtimeOnly fg.deobf("curse.maven:jade-324717:6855440")
 
-    // use for testing only
-    runtimeOnly fg.deobf("curse.maven:mekanism-268560:6552911")
-    runtimeOnly fg.deobf("curse.maven:codechicken-lib-1-8-242818:8491810")
-    runtimeOnly fg.deobf("curse.maven:brandons-core-231382:5422013")
-    runtimeOnly fg.deobf("curse.maven:draconic-evolution-223565:6793843")
+    // dependency of gtceu
+    runtimeOnly fg.deobf("curse.maven:ldlib-626676:5927130")
+    runtimeOnly fg.deobf("curse.maven:gregtechceu-modern-890405:5753724")
+    runtimeOnly fg.deobf("curse.maven:gtmthings-1104310:5745343")
 
     annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
 
@@ -189,7 +189,8 @@ tasks.named('processResources', ProcessResources).configure {
                              forge_version       : forge_version, forge_version_range: forge_version_range,
                              loader_version_range: loader_version_range,
                              mod_id              : mod_id, mod_name: mod_name, mod_license: mod_license, mod_version: mod_version,
-                             mod_authors         : mod_authors, mod_description: mod_description,]
+                             mod_authors         : mod_authors, mod_description: mod_description,
+                             ae2_version         : ae2_version, guideme_version: guideme_version,]
 
     inputs.properties replaceProperties
 
