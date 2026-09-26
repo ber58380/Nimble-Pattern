@@ -3,11 +3,11 @@ package com.ber.nimblePattern.parts;
 import appeng.api.inventories.InternalInventory;
 import appeng.util.inv.AppEngInternalInventory;
 import appeng.util.inv.InternalInventoryHost;
-import com.ber.nimblePattern.helpers.IPatternUpgradeLogicHost;
+import com.ber.nimblePattern.helpers.IPatternTagLogicHost;
 import net.minecraft.nbt.CompoundTag;
 
-public class PatternUpgradeLogic implements InternalInventoryHost {
-    private final IPatternUpgradeLogicHost host;
+public class PatternTagLogic implements InternalInventoryHost {
+    private final IPatternTagLogicHost host;
 
     public static final int INPUT_PATTERN_COLUMNS = 3;
     public static final int INPUT_PATTERN_VISIBLE_ROWS = 3;
@@ -20,7 +20,7 @@ public class PatternUpgradeLogic implements InternalInventoryHost {
 
     private boolean isLoading = false;
 
-    public PatternUpgradeLogic(IPatternUpgradeLogicHost host) {
+    public PatternTagLogic(IPatternTagLogicHost host) {
         this.host = host;
     }
 

@@ -168,7 +168,7 @@ dependencies {
     runtimeOnly fg.deobf("curse.maven:glodium-957920:5226922")
     compileOnly fg.deobf("curse.maven:ex-pattern-provider-892005:8615273")
     runtimeOnly fg.deobf("curse.maven:ex-pattern-provider-892005:8615273")
-    runtimeOnly fg.deobf("mezz.jei:jei-${minecraft_version}-forge:15.20.0.129")
+//    runtimeOnly fg.deobf("mezz.jei:jei-${minecraft_version}-forge:15.20.0.129")
     runtimeOnly fg.deobf("curse.maven:jade-324717:6855440")
 
     // dependency of gtceu

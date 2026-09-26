@@ -1,8 +1,0 @@
-{
-  "parent": "ae2:part/display_off",
-  "textures": {
-    "lightsBright": "nimble_pattern:part/pattern_upgrade_terminal_bright",
-    "lightsMedium": "nimble_pattern:part/pattern_upgrade_terminal_medium",
-    "lightsDark": "nimble_pattern:part/pattern_upgrade_terminal_dark"
-  }
-}

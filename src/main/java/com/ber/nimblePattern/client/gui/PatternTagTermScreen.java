@@ -1,6 +1,7 @@
 package com.ber.nimblePattern.client.gui;
 
 import appeng.api.config.Settings;
+import appeng.client.Point;
 import appeng.client.gui.AEBaseScreen;
 import appeng.client.gui.style.Blitter;
 import appeng.client.gui.style.ScreenStyle;
@@ -8,13 +9,19 @@ import appeng.client.gui.style.TerminalStyle;
 import appeng.client.gui.widgets.AETextField;
 import appeng.client.gui.widgets.Scrollbar;
 import appeng.client.gui.widgets.SettingToggleButton;
+import appeng.client.gui.widgets.TabButton;
 import appeng.core.AEConfig;
 import appeng.core.localization.GuiText;
 import appeng.core.sync.network.NetworkHandler;
 import appeng.core.sync.packets.InventoryActionPacket;
 import appeng.helpers.InventoryAction;
+import com.ber.nimblePattern.client.gui.panel.PatternLoopPanel;
+import com.ber.nimblePattern.client.gui.panel.TagModePanel;
 import com.ber.nimblePattern.client.gui.search.PatternSearch;
-import com.ber.nimblePattern.menu.PatternUpgradeTermMenu;
+import com.ber.nimblePattern.client.gui.panel.PatternUpgradePanel;
+import com.ber.nimblePattern.client.gui.widgets.PatternUpgradeSlot;
+import com.ber.nimblePattern.menu.PatternTagTermMenu;
+import com.ber.nimblePattern.parts.TagMode;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import net.minecraft.client.gui.GuiGraphics;
@@ -26,10 +33,14 @@ import net.minecraft.world.item.ItemStack;
 
 import java.util.*;
 
-import static com.ber.nimblePattern.menu.PatternUpgradeTermMenu.VIRTUAL_ID;
-import static com.ber.nimblePattern.menu.PatternUpgradeTermMenu.VIRTUAL_INV;
+import static com.ber.nimblePattern.menu.PatternTagTermMenu.VIRTUAL_ID;
+import static com.ber.nimblePattern.menu.PatternTagTermMenu.VIRTUAL_INV;
+import static com.ber.nimblePattern.menu.PatternTagTermMenu.INPUT_PATTERN;
+import static com.ber.nimblePattern.parts.PatternTagLogic.INPUT_PATTERN_COLUMNS;
+import static com.ber.nimblePattern.parts.PatternTagLogic.INPUT_PATTERN_TOTAL_ROWS;
+import static com.ber.nimblePattern.parts.PatternTagLogic.INPUT_PATTERN_VISIBLE_ROWS;
 
-public class PatternUpgradeTermScreen<C extends PatternUpgradeTermMenu> extends AEBaseScreen<C> {
+public class PatternTagTermScreen<C extends PatternTagTermMenu> extends AEBaseScreen<C> {
     private static final int COLUMNS = 9;
     private static final int MIN_ROWS = 2;
 
@@ -37,9 +48,11 @@ public class PatternUpgradeTermScreen<C extends PatternUpgradeTermMenu> extends 
 
     private final TerminalStyle style;
     private final Scrollbar scrollbar;
+    private final Scrollbar inputPatternScrollbar;
     private final AETextField searchField;
     private final PatternSearch search = new PatternSearch();
-    private final PatternUpgradePanel upgradePanel;
+    private final Map<TagMode, TagModePanel> modePanels = new EnumMap<>(TagMode.class);
+    private final Map<TagMode, TabButton> modeTabButtons = new EnumMap<>(TagMode.class);
 
     private final Long2ObjectOpenHashMap<PatternContainerRecord> byId = new Long2ObjectOpenHashMap<>();
     private List<PatternRecord> patterns = new ArrayList<>();
@@ -49,7 +62,7 @@ public class PatternUpgradeTermScreen<C extends PatternUpgradeTermMenu> extends 
     // populate byId; PatternSyncCompletePacket rebuilds the expensive global view once.
     private boolean fullUpdateInProgress = false;
 
-    public PatternUpgradeTermScreen(C menu, Inventory playerInventory, Component title, ScreenStyle style) {
+    public PatternTagTermScreen(C menu, Inventory playerInventory, Component title, ScreenStyle style) {
         super(menu, playerInventory, title, style);
         this.style = style.getTerminalStyle();
         addToLeftToolbar(new SettingToggleButton<>(Settings.TERMINAL_STYLE, AEConfig.instance().getTerminalStyle(), this::toggleTerminalStyle));
@@ -60,18 +73,38 @@ public class PatternUpgradeTermScreen<C extends PatternUpgradeTermMenu> extends 
                 GuiText.SearchTooltip.text(),
                 GuiText.SearchTooltipModId.text(),
                 GuiText.SearchTooltipTag.text(),
-//                GuiText.SearchTooltipToolTips.text(),
                 GuiText.SearchTooltipItemId.text(),
-                Component.translatable("gui.nimble_pattern.pattern_upgrade_terminal.search_tooltip_condition"),
-                Component.translatable("gui.nimble_pattern.pattern_upgrade_terminal.search_tooltip_status")
+                Component.translatable("gui.nimble_pattern.pattern_tag_terminal.search_tooltip_condition"),
+                Component.translatable("gui.nimble_pattern.pattern_tag_terminal.search_tooltip_status")
         ));
         this.searchField.setResponder(text -> {
             if (!fullUpdateInProgress) {
                 rebuildPatternView();
             }
         });
-        this.upgradePanel = new PatternUpgradePanel(this, widgets);
-        widgets.add("patternUpgradePanel", this.upgradePanel);
+        this.inputPatternScrollbar = widgets.addScrollBar("inputPatternScrollbar", Scrollbar.SMALL);
+        this.inputPatternScrollbar.setRange(
+                0,
+                INPUT_PATTERN_TOTAL_ROWS - INPUT_PATTERN_VISIBLE_ROWS,
+                INPUT_PATTERN_VISIBLE_ROWS);
+        this.inputPatternScrollbar.setCaptureMouseWheel(false);
+
+        for (var mode: TagMode.values()) {
+            var panel = switch (mode) {
+                case UPGRADE -> new PatternUpgradePanel(this, widgets);
+                case LOOP -> new PatternLoopPanel(this, widgets);
+            };
+            var tabButton = new TabButton(
+                    panel.getTabIconItem(),
+                    panel.getTabTooltip(),
+                    btn -> getMenu().setMode(mode));
+            tabButton.setStyle(TabButton.Style.HORIZONTAL);
+            var modeIndex = modeTabButtons.size();
+            widgets.add("modePanel" + modeIndex, panel);
+            widgets.add("modeTabButton" + modeIndex, tabButton);
+            modeTabButtons.put(mode, tabButton);
+            modePanels.put(mode, panel);
+        }
     }
 
     public void clear() {
@@ -102,7 +135,7 @@ public class PatternUpgradeTermScreen<C extends PatternUpgradeTermMenu> extends 
         this.updateScrollbar();
     }
 
-    private void reinitalize() {
+    private void reinitialize() {
         new ArrayList<>(this.children()).forEach(this::removeWidget);
         this.init();
     }
@@ -111,7 +144,7 @@ public class PatternUpgradeTermScreen<C extends PatternUpgradeTermMenu> extends 
         appeng.api.config.TerminalStyle next = btn.getNextValue(backwards);
         config.setTerminalStyle(next);
         btn.set(next);
-        this.reinitalize();
+        this.reinitialize();
     }
 
     private void updatePatterns() {
@@ -161,6 +194,39 @@ public class PatternUpgradeTermScreen<C extends PatternUpgradeTermMenu> extends 
         }
     }
 
+    @Override
+    protected void updateBeforeRender() {
+        super.updateBeforeRender();
+
+        repositionSlots(INPUT_PATTERN);
+        for (int i = 0; i < menu.getInputPatternSlots().length; i++) {
+            var slot = menu.getInputPatternSlots()[i];
+            var effectiveRow = (i / INPUT_PATTERN_COLUMNS) - inputPatternScrollbar.getCurrentScroll();
+            slot.setActive(effectiveRow >= 0 && effectiveRow < INPUT_PATTERN_VISIBLE_ROWS);
+            slot.y -= inputPatternScrollbar.getCurrentScroll() * 18;
+        }
+
+        for (var mode: TagMode.values()) {
+            var selected = menu.getMode() == mode;
+            modeTabButtons.get(mode).setSelected(selected);
+            modePanels.get(mode).setVisible(selected);
+        }
+    }
+
+    @Override
+    public boolean mouseScrolled(double mouseX, double mouseY, double wheelDelta) {
+        var relativeMouse = new Point(
+                (int) Math.round(mouseX - leftPos),
+                (int) Math.round(mouseY - topPos));
+        var inputAreaTop = imageHeight - 166;
+        if (relativeMouse.getX() >= 9 && relativeMouse.getX() < 88
+                && relativeMouse.getY() >= inputAreaTop && relativeMouse.getY() < inputAreaTop + 68
+                && inputPatternScrollbar.onMouseWheel(relativeMouse, wheelDelta)) {
+            return true;
+        }
+        return super.mouseScrolled(mouseX, mouseY, wheelDelta);
+    }
+
     public void postFullUpdate(long serverId, int inventorySize, Int2ObjectMap<ItemStack> slots) {
         var record = new PatternContainerRecord(serverId, inventorySize);
         this.byId.put(serverId, record);
@@ -181,7 +247,9 @@ public class PatternUpgradeTermScreen<C extends PatternUpgradeTermMenu> extends 
 
     public void postConditionUpdate(Set<String> conditions) {
         this.conditions = conditions;
-        this.upgradePanel.setHistory(conditions);
+        if (modePanels.get(TagMode.UPGRADE) instanceof PatternUpgradePanel upgradePanel) {
+            upgradePanel.setHistory(conditions);
+        }
     }
 
     @Override

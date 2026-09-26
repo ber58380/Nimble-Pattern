@@ -2,7 +2,9 @@
   "$schema": "../schema.json",
   "includes": [
     "../common/common.json",
-    "../common/player_inventory.json"
+    "../common/player_inventory.json",
+    "tag/upgrade.json",
+    "tag/loop.json"
   ],
   "slots": {
     "INPUT_PATTERN": {
@@ -17,7 +19,7 @@
   },
   "terminalStyle": {
     "header": {
-      "texture": "nimble_pattern:textures/guis/pattern_upgrade_terminal.png",
+      "texture": "nimble_pattern:textures/guis/pattern_tag_terminal.png",
       "srcRect": [
         0,
         0,
@@ -26,7 +28,7 @@
       ]
     },
     "firstRow": {
-      "texture": "nimble_pattern:textures/guis/pattern_upgrade_terminal.png",
+      "texture": "nimble_pattern:textures/guis/pattern_tag_terminal.png",
       "srcRect": [
         0,
         17,
@@ -35,7 +37,7 @@
       ]
     },
     "row": {
-      "texture": "nimble_pattern:textures/guis/pattern_upgrade_terminal.png",
+      "texture": "nimble_pattern:textures/guis/pattern_tag_terminal.png",
       "srcRect": [
         0,
         35,
@@ -44,7 +46,7 @@
       ]
     },
     "lastRow": {
-      "texture": "nimble_pattern:textures/guis/pattern_upgrade_terminal.png",
+      "texture": "nimble_pattern:textures/guis/pattern_tag_terminal.png",
       "srcRect": [
         0,
         53,
@@ -53,7 +55,7 @@
       ]
     },
     "bottom": {
-      "texture": "nimble_pattern:textures/guis/pattern_upgrade_terminal.png",
+      "texture": "nimble_pattern:textures/guis/pattern_tag_terminal.png",
       "srcRect": [
         0,
         71,
@@ -65,7 +67,7 @@
   "text": {
     "dialog_title": {
       "text": {
-        "translate": "item.nimble_pattern.pattern_upgrade_terminal"
+        "translate": "item.nimble_pattern.pattern_tag_terminal"
       },
       "position": {
         "left": 8,
@@ -74,6 +76,26 @@
     }
   },
   "widgets": {
+    "modeTabButton0": {
+      "left": 175,
+      "bottom": 174,
+      "width": 22,
+      "height": 22
+    },
+    "modeTabButton1": {
+      "left": 175,
+      "bottom": 153,
+      "width": 22,
+      "height": 22
+    },
+    "modePanel0": {
+      "left": 88,
+      "bottom": 166
+    },
+    "modePanel1": {
+      "left": 88,
+      "bottom": 166
+    },
     "scrollbar": {
       "left": 175,
       "top": 18
@@ -84,32 +106,10 @@
       "width": 89,
       "height": 12
     },
-    "patternUpgradePanel": {
-      "left": 9,
-      "bottom": 166
-    },
     "inputPatternScrollbar": {
       "left": 15,
       "bottom": 158,
       "height": 52
-    },
-    "conditionTextField": {
-      "left": 90,
-      "bottom": 166,
-      "width": 79,
-      "height": 12
-    },
-    "clearButton": {
-      "left": 129,
-      "bottom": 135,
-      "width": 40,
-      "height": 15
-    },
-    "applyButton": {
-      "left": 129,
-      "bottom": 112,
-      "width": 40,
-      "height": 15
     }
   }
 }

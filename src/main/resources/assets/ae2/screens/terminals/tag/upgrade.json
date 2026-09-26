@@ -1,0 +1,24 @@
+{
+  "__comment": "Describes the parts of the pattern tag terminal that relate to tag upgrade conditions on patterns",
+  "$schema": "../../schema.json",
+  "widgets": {
+    "conditionTextField": {
+      "left": 90,
+      "bottom": 166,
+      "width": 79,
+      "height": 12
+    },
+    "clearButton": {
+      "left": 129,
+      "bottom": 135,
+      "width": 40,
+      "height": 15
+    },
+    "applyButton": {
+      "left": 129,
+      "bottom": 112,
+      "width": 40,
+      "height": 15
+    }
+  }
+}

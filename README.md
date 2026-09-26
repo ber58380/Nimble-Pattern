@@ -43,10 +43,10 @@ add the following codes in the config file `invtweaks-client.toml`.
 
 ```toml
 [[sorting.containerOverrides]]
-containerClass = "com.ber.nimblePattern.client.gui.PatternUpgradeTermScreen"
+containerClass = "com.ber.nimblePattern.client.gui.PatternTagTermScreen"
 sortRange = ""
 [[sorting.containerOverrides]]
-containerClass = "com.ber.nimblePattern.menu.PatternUpgradeTermMenu"
+containerClass = "com.ber.nimblePattern.menu.PatternTagTermMenu"
 sortRange = ""
 ```
 

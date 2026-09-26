@@ -1,4 +1,4 @@
-package com.ber.nimblePattern.client.gui;
+package com.ber.nimblePattern.client.gui.widgets;
 
 import appeng.crafting.pattern.EncodedPatternItem;
 import appeng.menu.slot.AppEngSlot;

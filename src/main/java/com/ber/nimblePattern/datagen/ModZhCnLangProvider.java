@@ -11,12 +11,14 @@ public class ModZhCnLangProvider extends LanguageProvider {
 
     @Override
     protected void addTranslations() {
-        add("item.nimble_pattern.pattern_upgrade_terminal", "样板更新终端");
-        add("gui.nimble_pattern.pattern_upgrade_terminal.search_tooltip_condition", "用 % 按更新条件搜索(%UHV)");
-        add("gui.nimble_pattern.pattern_upgrade_terminal.search_tooltip_status", "用 ~ 按更新状态搜索(~UPGRADE)");
-        add("gui.nimble_pattern.pattern_upgrade_terminal.conditions", "更新条件");
-        add("gui.nimble_pattern.pattern_upgrade_terminal.clear", "清除");
-        add("gui.nimble_pattern.pattern_upgrade_terminal.apply", "应用");
+        add("item.nimble_pattern.pattern_tag_terminal", "样板标记终端");
+        add("gui.nimble_pattern.pattern_tag_terminal.search_tooltip_condition", "用 % 按更新条件搜索(%UHV)");
+        add("gui.nimble_pattern.pattern_tag_terminal.search_tooltip_status", "用 ~ 按更新状态搜索(~UPGRADE)");
+        add("gui.nimble_pattern.pattern_tag_terminal.conditions", "更新条件");
+        add("gui.nimble_pattern.pattern_tag_terminal.clear", "清除");
+        add("gui.nimble_pattern.pattern_tag_terminal.apply", "应用");
+        add("gui.nimble_pattern.pattern_tag_terminal.tab.upgrade", "更新样板");
+        add("gui.nimble_pattern.pattern_tag_terminal.tab.loop", "循环样板");
         add("tooltip.nimble_pattern.condition", "更新条件：%s");
         add("tooltip.nimble_pattern.state.UNTRACKED", "更新状态：未追踪");
         add("tooltip.nimble_pattern.state.LATEST", "更新状态：最新");

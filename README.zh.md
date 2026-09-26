@@ -36,10 +36,10 @@ Nimble Pattern是[Applied Energistics 2](https://github.com/AppliedEnergistics/A
 
 ```toml
 [[sorting.containerOverrides]]
-containerClass = "com.ber.nimblePattern.client.gui.PatternUpgradeTermScreen"
+containerClass = "com.ber.nimblePattern.client.gui.PatternTagTermScreen"
 sortRange = ""
 [[sorting.containerOverrides]]
-containerClass = "com.ber.nimblePattern.menu.PatternUpgradeTermMenu"
+containerClass = "com.ber.nimblePattern.menu.PatternTagTermMenu"
 sortRange = ""
 ```
 

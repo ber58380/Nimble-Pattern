@@ -4,9 +4,9 @@ import appeng.api.util.AEColor;
 import appeng.client.gui.style.StyleManager;
 import appeng.client.render.StaticItemColor;
 import com.ber.nimblePattern.NimblePattern;
-import com.ber.nimblePattern.client.gui.PatternUpgradeTermScreen;
+import com.ber.nimblePattern.client.gui.PatternTagTermScreen;
 import com.ber.nimblePattern.item.ModItems;
-import com.ber.nimblePattern.menu.PatternUpgradeTermMenu;
+import com.ber.nimblePattern.menu.PatternTagTermMenu;
 import net.minecraft.client.gui.screens.MenuScreens;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.RegisterColorHandlersEvent;
@@ -19,20 +19,20 @@ public class ClientModEvents {
     @SubscribeEvent
     public static void onClientSetup(final FMLClientSetupEvent event) {
         event.enqueueWork(() -> {
-            MenuScreens.<PatternUpgradeTermMenu, PatternUpgradeTermScreen<PatternUpgradeTermMenu>>register(
-                    PatternUpgradeTermMenu.TYPE,
-                    (menu, inv, title) -> new PatternUpgradeTermScreen<>(
-                            menu, inv, title, StyleManager.loadStyleDoc("/screens/terminals/pattern_upgrade_terminal.json"))
+            MenuScreens.<PatternTagTermMenu, PatternTagTermScreen<PatternTagTermMenu>>register(
+                    PatternTagTermMenu.TYPE,
+                    (menu, inv, title) -> new PatternTagTermScreen<>(
+                            menu, inv, title, StyleManager.loadStyleDoc("/screens/terminals/pattern_tag_terminal.json"))
             );
         });
     }
 
     @SubscribeEvent
     public static void registerItemColors(RegisterColorHandlersEvent.Item event) {
-        // register color for pattern upgrade terminal in player's inventory
+        // register color for pattern tag terminal in player's inventory
         event.getItemColors().register(
                 new StaticItemColor(AEColor.TRANSPARENT),
-                ModItems.PATTERN_UPGRADE_TERMINAL.get()
+                ModItems.PATTERN_TAG_TERMINAL.get()
         );
     }
 }

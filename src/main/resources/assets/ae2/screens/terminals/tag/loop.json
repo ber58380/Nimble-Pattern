@@ -1,0 +1,4 @@
+{
+  "__comment": "Describes the parts of the pattern tag terminal that relate to tag upgrade conditions on patterns",
+  "$schema": "../../schema.json"
+}

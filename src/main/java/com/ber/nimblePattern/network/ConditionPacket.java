@@ -1,6 +1,6 @@
 package com.ber.nimblePattern.network;
 
-import com.ber.nimblePattern.client.gui.PatternUpgradeTermScreen;
+import com.ber.nimblePattern.client.gui.PatternTagTermScreen;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraftforge.network.NetworkEvent;
@@ -34,7 +34,7 @@ public class ConditionPacket {
 
     public static void handle(ConditionPacket msg, Supplier<NetworkEvent.Context> ctx) {
         ctx.get().enqueueWork(() -> {
-            if (Minecraft.getInstance().screen instanceof PatternUpgradeTermScreen screen) {
+            if (Minecraft.getInstance().screen instanceof PatternTagTermScreen screen) {
                 screen.postConditionUpdate(msg.conditions);
             }
         });

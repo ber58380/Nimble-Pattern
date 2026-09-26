@@ -3,8 +3,8 @@ package com.ber.nimblePattern.network;
 import appeng.api.stacks.AEFluidKey;
 import appeng.api.stacks.AEItemKey;
 import appeng.api.stacks.AEKey;
-import com.ber.nimblePattern.client.gui.PatternUpgradeTermScreen;
-import com.ber.nimblePattern.client.gui.PatternUpgradeToast;
+import com.ber.nimblePattern.client.gui.PatternTagTermScreen;
+import com.ber.nimblePattern.client.gui.widgets.PatternUpgradeToast;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
@@ -36,7 +36,7 @@ public class PatternUpgradeNotificationPacket {
         ctx.get().enqueueWork(() -> {
             var minecraft = Minecraft.getInstance();
             // since the upgrade terminal is opened, do not send toast
-            if (minecraft.screen instanceof PatternUpgradeTermScreen) {
+            if (minecraft.screen instanceof PatternTagTermScreen) {
                 return;
             }
             if (minecraft.player == null) {

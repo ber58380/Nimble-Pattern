@@ -11,9 +11,9 @@ import appeng.parts.PartModel;
 import appeng.parts.reporting.AbstractDisplayPart;
 import appeng.util.ConfigManager;
 import com.ber.nimblePattern.NimblePattern;
-import com.ber.nimblePattern.helpers.IPatternUpgradeLogicHost;
-import com.ber.nimblePattern.helpers.IPatternUpgradeMenuHost;
-import com.ber.nimblePattern.menu.PatternUpgradeTermMenu;
+import com.ber.nimblePattern.helpers.IPatternTagLogicHost;
+import com.ber.nimblePattern.helpers.IPatternTagMenuHost;
+import com.ber.nimblePattern.menu.PatternTagTermMenu;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.InteractionHand;
@@ -23,20 +23,20 @@ import net.minecraft.world.phys.Vec3;
 
 import java.util.List;
 
-public class PatternUpgradeTerminalPart extends AbstractDisplayPart implements IConfigurableObject, IPatternUpgradeLogicHost, IPatternUpgradeMenuHost {
+public class PatternTagTerminalPart extends AbstractDisplayPart implements IConfigurableObject, IPatternTagLogicHost, IPatternTagMenuHost {
     @PartModels
-    public static final ResourceLocation MODEL_OFF = ResourceLocation.fromNamespaceAndPath(NimblePattern.MOD_ID, "part/pattern_upgrade_terminal_off");
+    public static final ResourceLocation MODEL_OFF = ResourceLocation.fromNamespaceAndPath(NimblePattern.MOD_ID, "part/pattern_tag_terminal_off");
     @PartModels
-    public static final ResourceLocation MODEL_ON = ResourceLocation.fromNamespaceAndPath(NimblePattern.MOD_ID, "part/pattern_upgrade_terminal_on");
+    public static final ResourceLocation MODEL_ON = ResourceLocation.fromNamespaceAndPath(NimblePattern.MOD_ID, "part/pattern_tag_terminal_on");
 
     public static final IPartModel MODELS_OFF = new PartModel(MODEL_BASE, MODEL_OFF, MODEL_STATUS_OFF);
     public static final IPartModel MODELS_ON = new PartModel(MODEL_BASE, MODEL_ON, MODEL_STATUS_ON);
     public static final IPartModel MODELS_HAS_CHANNEL = new PartModel(MODEL_BASE, MODEL_ON, MODEL_STATUS_HAS_CHANNEL);
 
     private final ConfigManager configManager = new ConfigManager(this::markForSave);
-    private final PatternUpgradeLogic logic = new PatternUpgradeLogic(this);
+    private final PatternTagLogic logic = new PatternTagLogic(this);
 
-    public PatternUpgradeTerminalPart(IPartItem<?> partItem) {
+    public PatternTagTerminalPart(IPartItem<?> partItem) {
         super(partItem, true);
         // 未来或许需要用configManager配置终端的设置，暂不启用
 //        this.configManager.registerSetting(PatternUpgradeTerminalSettings.DISPLAY_MODE, DisplayMode.FLAT);
@@ -59,7 +59,7 @@ public class PatternUpgradeTerminalPart extends AbstractDisplayPart implements I
     @Override
     public boolean onPartActivate(Player player, InteractionHand hand, Vec3 pos) {
         if (!super.onPartActivate(player, hand, pos) && !isClientSide()) {
-            MenuOpener.open(PatternUpgradeTermMenu.TYPE, player, MenuLocators.forPart(this));
+            MenuOpener.open(PatternTagTermMenu.TYPE, player, MenuLocators.forPart(this));
         }
         return true;
     }
@@ -75,7 +75,7 @@ public class PatternUpgradeTerminalPart extends AbstractDisplayPart implements I
     }
 
     @Override
-    public PatternUpgradeLogic getLogic() {
+    public PatternTagLogic getLogic() {
         return logic;
     }
 

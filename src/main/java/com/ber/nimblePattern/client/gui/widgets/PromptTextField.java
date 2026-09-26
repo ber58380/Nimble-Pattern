@@ -1,4 +1,4 @@
-package com.ber.nimblePattern.client.gui;
+package com.ber.nimblePattern.client.gui.widgets;
 
 import appeng.client.gui.style.PaletteColor;
 import appeng.client.gui.style.ScreenStyle;

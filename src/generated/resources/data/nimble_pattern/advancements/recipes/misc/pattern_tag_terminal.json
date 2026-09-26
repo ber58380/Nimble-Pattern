@@ -15,7 +15,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "nimble_pattern:pattern_upgrade_terminal"
+        "recipe": "nimble_pattern:pattern_tag_terminal"
       },
       "trigger": "minecraft:recipe_unlocked"
     }
@@ -28,7 +28,7 @@
   ],
   "rewards": {
     "recipes": [
-      "nimble_pattern:pattern_upgrade_terminal"
+      "nimble_pattern:pattern_tag_terminal"
     ]
   },
   "sends_telemetry_event": false

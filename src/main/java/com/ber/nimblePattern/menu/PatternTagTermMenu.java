@@ -19,9 +19,10 @@ import appeng.menu.slot.RestrictedInputSlot;
 import appeng.parts.crafting.PatternProviderPart;
 import appeng.util.inv.AppEngInternalInventory;
 import com.ber.nimblePattern.compat.extendedae.ExtendedAECompat;
-import com.ber.nimblePattern.helpers.IPatternUpgradeMenuHost;
+import com.ber.nimblePattern.helpers.IPatternTagMenuHost;
 import com.ber.nimblePattern.network.*;
-import com.ber.nimblePattern.parts.PatternUpgradeLogic;
+import com.ber.nimblePattern.parts.PatternTagLogic;
+import com.ber.nimblePattern.parts.TagMode;
 import com.ber.nimblePattern.pattern.NimblePatternTag;
 import com.ber.nimblePattern.pattern.PatternUpgradeTracker;
 import it.unimi.dsi.fastutil.ints.Int2ObjectArrayMap;
@@ -46,12 +47,12 @@ import java.util.stream.Collectors;
 
 import static appeng.helpers.InventoryAction.PICKUP_OR_SET_DOWN;
 import static appeng.helpers.InventoryAction.SPLIT_OR_PLACE_SINGLE;
-import static com.ber.nimblePattern.parts.PatternUpgradeLogic.INPUT_PATTERN_SLOTS;
+import static com.ber.nimblePattern.parts.PatternTagLogic.INPUT_PATTERN_SLOTS;
 
-public class PatternUpgradeTermMenu extends AEBaseMenu {
-    public static final MenuType<PatternUpgradeTermMenu> TYPE = MenuTypeBuilder
-            .create(PatternUpgradeTermMenu::new, IPatternUpgradeMenuHost.class)
-            .build("patternupgradeterminal");
+public class PatternTagTermMenu extends AEBaseMenu {
+    public static final MenuType<PatternTagTermMenu> TYPE = MenuTypeBuilder
+            .create(PatternTagTermMenu::new, IPatternTagMenuHost.class)
+            .build("patterntagterminal");
 
     private static long inventorySerial = Long.MIN_VALUE;
     // Pattern provider -> Container information
@@ -59,10 +60,12 @@ public class PatternUpgradeTermMenu extends AEBaseMenu {
     // Pattern provider temp id -> Container information
     private final Long2ObjectOpenHashMap<ContainerTracker> byId = new Long2ObjectOpenHashMap<>();
 
+    public TagMode mode = TagMode.UPGRADE;
+
     public static final SlotSemantic INPUT_PATTERN = SlotSemantics.register("INPUT_PATTERN", false);
     public static final SlotSemantic CONDITION_ITEM = SlotSemantics.register("CONDITION_ITEM", false);
-    private final IPatternUpgradeMenuHost host;
-    private final PatternUpgradeLogic upgradeLogic;
+    private final IPatternTagMenuHost host;
+    private final PatternTagLogic tagLogic;
     private final InternalInventory inputPatternInv;
     private final InternalInventory conditionItemInv;
     private final RestrictedInputSlot[] inputPatternSlots = new RestrictedInputSlot[INPUT_PATTERN_SLOTS];
@@ -75,22 +78,22 @@ public class PatternUpgradeTermMenu extends AEBaseMenu {
     // Incremental updates only need to touch conditions of changed slots.
     private final Map<String, Integer> conditionRefCounts = new HashMap<>();
 
-    public PatternUpgradeTermMenu(int id, Inventory ip, IPatternUpgradeMenuHost host) {
+    public PatternTagTermMenu(int id, Inventory ip, IPatternTagMenuHost host) {
         this(TYPE, id, ip, host, true);
     }
 
-    public PatternUpgradeTermMenu(MenuType<?> menuType, int id, Inventory ip, IPatternUpgradeMenuHost host, boolean bindInventory) {
+    public PatternTagTermMenu(MenuType<?> menuType, int id, Inventory ip, IPatternTagMenuHost host, boolean bindInventory) {
         super(menuType, id, ip, host);
         this.host = host;
-        this.upgradeLogic = host.getLogic();
-        this.inputPatternInv = upgradeLogic.getInputPatternInv();
+        this.tagLogic = host.getLogic();
+        this.inputPatternInv = tagLogic.getInputPatternInv();
         for (int i = 0; i < INPUT_PATTERN_SLOTS; i++) {
             var slot = new RestrictedInputSlot(RestrictedInputSlot.PlacableItemType.ENCODED_PATTERN, inputPatternInv, i);
             slot.setStackLimit(1);
             this.inputPatternSlots[i] = slot;
             this.addSlot(slot, INPUT_PATTERN);
         }
-        this.conditionItemInv = upgradeLogic.getConditionItemInv();
+        this.conditionItemInv = tagLogic.getConditionItemInv();
         this.conditionItemSlot = new FakeSlot(conditionItemInv, 0);
         this.addSlot(conditionItemSlot, CONDITION_ITEM);
         if (bindInventory) {
@@ -112,6 +115,14 @@ public class PatternUpgradeTermMenu extends AEBaseMenu {
         return conditionItemSlot;
     }
 
+    public TagMode getMode() {
+        return this.mode;
+    }
+
+    public void setMode(TagMode mode) {
+        this.mode = mode;
+    }
+
     @SuppressWarnings("unchecked")
     @Override
     public void broadcastChanges() {
@@ -120,7 +131,7 @@ public class PatternUpgradeTermMenu extends AEBaseMenu {
         }
         super.broadcastChanges();
         IGrid grid = getGrid();
-        var state = new PatternUpgradeTermMenu.VisitorState();
+        var state = new PatternTagTermMenu.VisitorState();
         if (grid != null) {
             for (var machineClass : grid.getMachineClasses()) {
                 if (PatternContainer.class.isAssignableFrom(machineClass)) {
@@ -274,7 +285,7 @@ public class PatternUpgradeTermMenu extends AEBaseMenu {
             }
 
             for (var container : grid.getActiveMachines(containerClass)) {
-                this.diList.put(container, new PatternUpgradeTermMenu.ContainerTracker(container, container.getTerminalPatternInventory()));
+                this.diList.put(container, new PatternTagTermMenu.ContainerTracker(container, container.getTerminalPatternInventory()));
             }
         }
 

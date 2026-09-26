@@ -1,4 +1,4 @@
-package com.ber.nimblePattern.client.gui;
+package com.ber.nimblePattern.client.gui.widgets;
 
 import appeng.client.gui.style.Blitter;
 import com.ber.nimblePattern.NimblePattern;

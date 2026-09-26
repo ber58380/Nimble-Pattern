@@ -1,8 +1,8 @@
 {
   "textures": {
-    "lightsBright": "nimble_pattern:part/pattern_upgrade_terminal_bright",
-    "lightsMedium": "nimble_pattern:part/pattern_upgrade_terminal_medium",
-    "lightsDark": "nimble_pattern:part/pattern_upgrade_terminal_dark"
+    "lightsBright": "nimble_pattern:part/pattern_tag_terminal_bright",
+    "lightsMedium": "nimble_pattern:part/pattern_tag_terminal_medium",
+    "lightsDark": "nimble_pattern:part/pattern_tag_terminal_dark"
   },
   "elements": [
     {

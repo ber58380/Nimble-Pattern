@@ -19,7 +19,7 @@ public class ModRecipesProvider extends RecipeProvider implements IConditionBuil
 
     @Override
     protected void buildRecipes(Consumer<FinishedRecipe> pWriter) {
-        ShapelessRecipeBuilder.shapeless(RecipeCategory.MISC, ModItems.PATTERN_UPGRADE_TERMINAL.get())
+        ShapelessRecipeBuilder.shapeless(RecipeCategory.MISC, ModItems.PATTERN_TAG_TERMINAL.get())
                 .requires(AEParts.PATTERN_ACCESS_TERMINAL.asItem())
                 .requires(AEItems.LOGIC_PROCESSOR)
                 .requires(AEItems.CALCULATION_PROCESSOR)

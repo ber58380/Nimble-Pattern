@@ -1,6 +1,6 @@
 package com.ber.nimblePattern.network;
 
-import com.ber.nimblePattern.client.gui.PatternUpgradeTermScreen;
+import com.ber.nimblePattern.client.gui.PatternTagTermScreen;
 import it.unimi.dsi.fastutil.ints.Int2ObjectArrayMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import net.minecraft.client.Minecraft;
@@ -50,7 +50,7 @@ public class PatternPacket {
 
     public static void handle(PatternPacket msg, Supplier<NetworkEvent.Context> ctx) {
         ctx.get().enqueueWork(() -> {
-            if (Minecraft.getInstance().screen instanceof PatternUpgradeTermScreen screen) {
+            if (Minecraft.getInstance().screen instanceof PatternTagTermScreen screen) {
                 if (msg.fullUpdate) {
                     screen.postFullUpdate(msg.inventoryId, msg.inventorySize, msg.slots);
                 } else {

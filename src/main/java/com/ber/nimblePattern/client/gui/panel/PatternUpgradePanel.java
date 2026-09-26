@@ -1,48 +1,45 @@
-package com.ber.nimblePattern.client.gui;
+package com.ber.nimblePattern.client.gui.panel;
 
 import appeng.api.stacks.GenericStack;
 import appeng.client.Point;
-import appeng.client.gui.ICompositeWidget;
 import appeng.client.gui.WidgetContainer;
-import appeng.client.gui.widgets.Scrollbar;
-import com.ber.nimblePattern.menu.PatternUpgradeTermMenu;
+import appeng.client.gui.style.Blitter;
+import com.ber.nimblePattern.NimblePattern;
+import com.ber.nimblePattern.client.gui.widgets.NimbleButton;
+import com.ber.nimblePattern.client.gui.PatternTagTermScreen;
+import com.ber.nimblePattern.client.gui.widgets.PromptTextField;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.renderer.Rect2i;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraftforge.registries.ForgeRegistries;
 
 import java.util.Set;
 
-import static com.ber.nimblePattern.menu.PatternUpgradeTermMenu.CONDITION_ITEM;
-import static com.ber.nimblePattern.menu.PatternUpgradeTermMenu.INPUT_PATTERN;
-import static com.ber.nimblePattern.parts.PatternUpgradeLogic.INPUT_PATTERN_TOTAL_ROWS;
-import static com.ber.nimblePattern.parts.PatternUpgradeLogic.INPUT_PATTERN_VISIBLE_ROWS;
+import static com.ber.nimblePattern.menu.PatternTagTermMenu.CONDITION_ITEM;
+public class PatternUpgradePanel extends TagModePanel {
+    private static final int WIDTH = 88;
+    private static final int HEIGHT = 68;
+    private static final Blitter BG = Blitter.texture(
+            ResourceLocation.fromNamespaceAndPath(NimblePattern.MOD_ID, "textures/guis/upgrade_mode.png"),
+            WIDTH,
+            HEIGHT).src(0, 0, WIDTH, HEIGHT);
 
-public class PatternUpgradePanel implements ICompositeWidget {
-    protected final PatternUpgradeTermScreen<?> screen;
-    protected final PatternUpgradeTermMenu menu;
-    protected final WidgetContainer widgets;
-    protected int x;
-    protected int y;
-
-    private final Scrollbar scrollbar;
     private final PromptTextField conditionTextField;
     // true means code is doing sync (fakeSlot -> textField), not allow clear in setResponder (textField -> EMPTY)
     private boolean syncTextAndSlot = false;
     private final Button clearButton;
     private final Button applyButton;
 
-    public PatternUpgradePanel(PatternUpgradeTermScreen<?> screen, WidgetContainer widgets) {
-        this.screen = screen;
-        this.menu = screen.getMenu();
-        this.widgets = widgets;
-        this.scrollbar = widgets.addScrollBar("inputPatternScrollbar", Scrollbar.SMALL);
-        this.scrollbar.setRange(0, INPUT_PATTERN_TOTAL_ROWS - INPUT_PATTERN_VISIBLE_ROWS, 3);
-        this.scrollbar.setCaptureMouseWheel(false);
+    public PatternUpgradePanel(PatternTagTermScreen<?> screen, WidgetContainer widgets) {
+        super(screen, widgets);
+
         this.conditionTextField = new PromptTextField(screen.getStyle(), Minecraft.getInstance().font, 0, 0, 0, 0);
-        this.conditionTextField.setPlaceholder(Component.translatable("gui.nimble_pattern.pattern_upgrade_terminal.conditions"));
+        this.conditionTextField.setPlaceholder(Component.translatable("gui.nimble_pattern.pattern_tag_terminal.conditions"));
         conditionTextField.setResponder(text -> {
             conditionTextField.update();
             if (syncTextAndSlot) {
@@ -58,42 +55,15 @@ public class PatternUpgradePanel implements ICompositeWidget {
             }
         });
         widgets.add("conditionTextField", this.conditionTextField);
-        this.clearButton = new NimbleButton(0, 0, 0, 0, Component.translatable("gui.nimble_pattern.pattern_upgrade_terminal.clear"), button -> clear());
+        this.clearButton = new NimbleButton(0, 0, 0, 0, Component.translatable("gui.nimble_pattern.pattern_tag_terminal.clear"), button -> clear());
         widgets.add("clearButton", this.clearButton);
-        this.applyButton = new NimbleButton(0, 0, 0, 0, Component.translatable("gui.nimble_pattern.pattern_upgrade_terminal.apply"), button -> apply());
+        this.applyButton = new NimbleButton(0, 0, 0, 0, Component.translatable("gui.nimble_pattern.pattern_tag_terminal.apply"), button -> apply());
         widgets.add("applyButton", this.applyButton);
     }
 
     @Override
-    public void setPosition(Point position) {
-        x = position.getX();
-        y = position.getY();
-    }
-
-    @Override
-    public void setSize(int width, int height) {
-    }
-
-    @Override
-    public Rect2i getBounds() {
-        return new Rect2i(x, y, 126, 68);
-    }
-
-    @Override
-    public final boolean isVisible() {
-        return true;
-    }
-
-    @Override
     public void updateBeforeRender() {
-        screen.repositionSlots(INPUT_PATTERN);
         screen.repositionSlots(CONDITION_ITEM);
-        for (int i = 0; i < menu.getInputPatternSlots().length; i++) {
-            var slot = menu.getInputPatternSlots()[i];
-            var effectiveRow = (i / 3) - scrollbar.getCurrentScroll();
-            slot.setActive(effectiveRow >= 0 && effectiveRow < INPUT_PATTERN_VISIBLE_ROWS);
-            slot.y -= scrollbar.getCurrentScroll() * 18;
-        }
 
         var stack = menu.getConditionItemSlot().getItem();
         if (!stack.isEmpty()) {
@@ -118,8 +88,27 @@ public class PatternUpgradePanel implements ICompositeWidget {
     }
 
     @Override
-    public boolean onMouseWheel(Point mousePos, double delta) {
-        return scrollbar.onMouseWheel(mousePos, delta);
+    public void drawBackgroundLayer(GuiGraphics guiGraphics, Rect2i bounds, Point mouse) {
+        BG.dest(bounds.getX() + x, bounds.getY() + y).blit(guiGraphics);
+    }
+
+    @Override
+    public ItemStack getTabIconItem() {
+        return Items.FURNACE.getDefaultInstance();
+    }
+
+    @Override
+    public Component getTabTooltip() {
+        return Component.translatable("gui.nimble_pattern.pattern_tag_terminal.tab.upgrade");
+    }
+
+    @Override
+    public void setVisible(boolean visible) {
+        super.setVisible(visible);
+        conditionTextField.setVisible(visible);
+        clearButton.visible = visible;
+        applyButton.visible = visible;
+        screen.setSlotsHidden(CONDITION_ITEM, !visible);
     }
 
     public void setHistory(Set<String> history) {

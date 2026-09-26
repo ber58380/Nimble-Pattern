@@ -9,9 +9,9 @@ import appeng.core.definitions.AEParts;
 import appeng.items.parts.PartModelsHelper;
 import com.ber.nimblePattern.compat.extendedae.ExtendedAECompat;
 import com.ber.nimblePattern.item.ModItems;
-import com.ber.nimblePattern.menu.PatternUpgradeTermMenu;
+import com.ber.nimblePattern.menu.PatternTagTermMenu;
 import com.ber.nimblePattern.network.NimblePatternNetwork;
-import com.ber.nimblePattern.parts.PatternUpgradeTerminalPart;
+import com.ber.nimblePattern.parts.PatternTagTerminalPart;
 import com.ber.nimblePattern.pattern.PatternUpgradeTracker;
 import com.glodblock.github.extendedae.common.EPPItemAndBlock;
 import net.minecraftforge.common.MinecraftForge;
@@ -36,11 +36,11 @@ public class NimblePattern {
         ModItems.register(modEventBus);
 
         // trigger initialization to wait in ae2 registration queue
-        PatternUpgradeTermMenu.TYPE.toString();
+        PatternTagTermMenu.TYPE.toString();
 
         NimblePatternNetwork.init();
         // register part models in ae2
-        PartModels.registerModels(PartModelsHelper.createModels(PatternUpgradeTerminalPart.class));
+        PartModels.registerModels(PartModelsHelper.createModels(PatternTagTerminalPart.class));
 
         modEventBus.addListener(this::addCreative);
 
@@ -73,7 +73,7 @@ public class NimblePattern {
     private void addCreative(BuildCreativeModeTabContentsEvent event) {
         // 暂时先添加到ae2创造物品栏，后续再创建模组的物品栏
         if (event.getTabKey() == AECreativeTabIds.MAIN) {
-            event.accept(ModItems.PATTERN_UPGRADE_TERMINAL);
+            event.accept(ModItems.PATTERN_TAG_TERMINAL);
         }
     }
 }
