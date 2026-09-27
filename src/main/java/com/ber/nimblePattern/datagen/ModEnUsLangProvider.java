@@ -12,6 +12,11 @@ public class ModEnUsLangProvider extends LanguageProvider {
     @Override
     protected void addTranslations() {
         add("item.nimble_pattern.pattern_tag_terminal", "Pattern Tag Terminal");
+        add("item.nimble_pattern.loop_storage_cell_1k", "1k Loop Storage Cell");
+        add("item.nimble_pattern.loop_storage_cell_4k", "4k Loop Storage Cell");
+        add("item.nimble_pattern.loop_storage_cell_16k", "16k Loop Storage Cell");
+        add("item.nimble_pattern.loop_storage_cell_64k", "64k Loop Storage Cell");
+        add("item.nimble_pattern.loop_storage_cell_256k", "256k Loop Storage Cell");
         add("gui.nimble_pattern.pattern_tag_terminal.search_tooltip_condition", "Use % to search by conditions (%UHV)");
         add("gui.nimble_pattern.pattern_tag_terminal.search_tooltip_status", "Use ~ to search by status (~UPGRADE)");
         add("gui.nimble_pattern.pattern_tag_terminal.conditions", "Upgrade Conditions");

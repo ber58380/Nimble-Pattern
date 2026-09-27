@@ -2,6 +2,7 @@ package com.ber.nimblePattern;
 
 import appeng.api.ids.AECreativeTabIds;
 import appeng.api.parts.PartModels;
+import appeng.api.storage.StorageCells;
 import appeng.api.upgrades.Upgrades;
 import appeng.core.definitions.AEBlocks;
 import appeng.core.definitions.AEItems;
@@ -9,6 +10,7 @@ import appeng.core.definitions.AEParts;
 import appeng.items.parts.PartModelsHelper;
 import com.ber.nimblePattern.compat.extendedae.ExtendedAECompat;
 import com.ber.nimblePattern.item.ModItems;
+import com.ber.nimblePattern.item.storage.LoopStorageCellHandler;
 import com.ber.nimblePattern.menu.PatternTagTermMenu;
 import com.ber.nimblePattern.network.NimblePatternNetwork;
 import com.ber.nimblePattern.parts.PatternTagTerminalPart;
@@ -49,6 +51,8 @@ public class NimblePattern {
     }
 
     private void commonSetup(final FMLCommonSetupEvent event) {
+        StorageCells.addCellHandler(LoopStorageCellHandler.INSTANCE);
+
         String patternProviderGroup = "gui.ae2.CraftingInterface";
         Upgrades.add(AEItems.FUZZY_CARD, AEBlocks.PATTERN_PROVIDER, 1, patternProviderGroup);
         Upgrades.add(AEItems.FUZZY_CARD, AEParts.PATTERN_PROVIDER, 1, patternProviderGroup);
@@ -74,6 +78,11 @@ public class NimblePattern {
         // 暂时先添加到ae2创造物品栏，后续再创建模组的物品栏
         if (event.getTabKey() == AECreativeTabIds.MAIN) {
             event.accept(ModItems.PATTERN_TAG_TERMINAL);
+            event.accept(ModItems.LOOP_STORAGE_CELL_1K);
+            event.accept(ModItems.LOOP_STORAGE_CELL_4K);
+            event.accept(ModItems.LOOP_STORAGE_CELL_16K);
+            event.accept(ModItems.LOOP_STORAGE_CELL_64K);
+            event.accept(ModItems.LOOP_STORAGE_CELL_256K);
         }
     }
 }

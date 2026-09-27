@@ -6,6 +6,7 @@
   "compatibilityLevel": "JAVA_17",
   "mixins": [
     "ae2.CraftingCpuLogicMixin",
+    "ae2.DelegatingMEInventoryMixin",
     "ae2.EncodedPatternItemMixin",
     "ae2.NetworkStorageMixin",
     "ae2.PatternProviderBlockEntityMixin",
