@@ -93,11 +93,9 @@ public class PatternTagTermScreen<C extends PatternTagTermMenu> extends AEBaseSc
             var panel = switch (mode) {
                 case UPGRADE -> new PatternUpgradePanel(this, widgets);
                 case LOOP -> new PatternLoopPanel(this, widgets);
+                case TOOL -> new com.ber.nimblePattern.client.gui.panel.PatternToolPanel(this, widgets);
             };
-            var tabButton = new TabButton(
-                    panel.getTabIconItem(),
-                    panel.getTabTooltip(),
-                    btn -> getMenu().setMode(mode));
+            var tabButton = panel.createTabButton(btn -> getMenu().setMode(mode));
             tabButton.setStyle(TabButton.Style.HORIZONTAL);
             var modeIndex = modeTabButtons.size();
             widgets.add("modePanel" + modeIndex, panel);
@@ -108,6 +106,7 @@ public class PatternTagTermScreen<C extends PatternTagTermMenu> extends AEBaseSc
     }
 
     public void clear() {
+        slotsDirty = true;
         fullUpdateInProgress = true;
         byId.clear();
         patterns.clear();
@@ -121,6 +120,8 @@ public class PatternTagTermScreen<C extends PatternTagTermMenu> extends AEBaseSc
     }
 
     private void rebuildPatternView() {
+        viewDirty = false;
+        slotsDirty = true;
         updatePatterns();
         updateScrollbar();
         updateSlots();
@@ -128,6 +129,7 @@ public class PatternTagTermScreen<C extends PatternTagTermMenu> extends AEBaseSc
 
     @Override
     protected void init() {
+        slotsDirty = true;
         var availableHeight = height - 2 * AEConfig.instance().getTerminalMargin();
         this.rows = Math.max(MIN_ROWS, config.getTerminalStyle().getRows(style.getPossibleRows(availableHeight)));
         this.imageHeight = style.getScreenHeight(rows);
@@ -169,7 +171,16 @@ public class PatternTagTermScreen<C extends PatternTagTermMenu> extends AEBaseSc
         scrollbar.setRange(0, totalRows - this.rows, Math.max(1, this.rows / 6));
     }
 
+    private boolean slotsDirty = true;
+    private boolean viewDirty;
+    private int lastSlotScroll = -1;
+    private int lastSlotRows = -1;
+
     private void updateSlots() {
+        if (!slotsDirty && lastSlotScroll == scrollbar.getCurrentScroll() && lastSlotRows == rows) return;
+        slotsDirty = false;
+        lastSlotScroll = scrollbar.getCurrentScroll();
+        lastSlotRows = rows;
         menu.slots.removeIf(slot -> slot instanceof PatternUpgradeSlot);
         int first = scrollbar.getCurrentScroll();
         for (int r = 0; r < rows; r++) {
@@ -197,6 +208,7 @@ public class PatternTagTermScreen<C extends PatternTagTermMenu> extends AEBaseSc
     @Override
     protected void updateBeforeRender() {
         super.updateBeforeRender();
+        if (viewDirty && !fullUpdateInProgress) rebuildPatternView();
 
         repositionSlots(INPUT_PATTERN);
         for (int i = 0; i < menu.getInputPatternSlots().length; i++) {
@@ -240,7 +252,7 @@ public class PatternTagTermScreen<C extends PatternTagTermMenu> extends AEBaseSc
                 record.getInventory().setItemDirect(key, value.isEmpty() ? ItemStack.EMPTY : value);
             });
             if (!fullUpdateInProgress) {
-                rebuildPatternView();
+                viewDirty = true;
             }
         }
     }

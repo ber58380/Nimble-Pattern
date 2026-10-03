@@ -3,11 +3,12 @@ package com.ber.nimblePattern.client.gui.panel;
 import appeng.client.Point;
 import appeng.client.gui.ICompositeWidget;
 import appeng.client.gui.WidgetContainer;
+import appeng.client.gui.widgets.TabButton;
 import com.ber.nimblePattern.client.gui.PatternTagTermScreen;
 import com.ber.nimblePattern.menu.PatternTagTermMenu;
 import net.minecraft.client.renderer.Rect2i;
+import net.minecraft.client.gui.components.Button;
 import net.minecraft.network.chat.Component;
-import net.minecraft.world.item.ItemStack;
 
 public abstract class TagModePanel implements ICompositeWidget {
     protected final PatternTagTermScreen<?> screen;
@@ -23,7 +24,7 @@ public abstract class TagModePanel implements ICompositeWidget {
         this.widgets = widgets;
     }
 
-    public abstract ItemStack getTabIconItem();
+    public abstract TabButton createTabButton(Button.OnPress onPress);
 
     public abstract Component getTabTooltip();
 

@@ -12,12 +12,22 @@ adding some features for patterns to improve playing experiences.
 
 ## Features
 
+### Probability Patterns
+
+Supported JEI recipes are encoded using expected output amounts from their original base probabilities, ignoring voltage and overclock bonuses. Fractional outputs scale the entire recipe. Re-encoding removes only the probability tag and keeps the expected quantities. Failed rolls retry on the original CPU; missing ingredients trigger a notification and can be supplied manually. The fallback timeout defaults to 120 seconds and is configurable. See [usage and compatibility notes (Chinese)](docs/probability-patterns.md).
+
 ### Pattern Upgrade Terminal
 
 This terminal can view all patterns in the network and support retrieving patterns from the terminal.
 The patterns will go back to the original slot when it goes back to the terminal.
 The terminal can set upgrade conditions for patterns, and it will send broadcasts to players when the upgrade condition
 is achieved.
+
+### Tool Patterns
+
+Use the Pattern Tag Terminal's Tool Patterns tab to mark up to four tools and apply them to the crafting patterns on the left. Processing patterns are not supported. Each selected tool must be an input in every selected pattern and must either be unbreakable and returned unchanged by the recipe, or have a positive net output (such as smithing-template duplication).
+
+Each job reserves only one recipe's worth of tools from existing network stock. Tools are retained by the CPU between assembler operations and returned to network storage when the job ends. A single tool still requires sequential reuse; it is not duplicated for parallel operations. Self-producing tools advertise only their net output.
 
 ### Fuzzy Crafting
 

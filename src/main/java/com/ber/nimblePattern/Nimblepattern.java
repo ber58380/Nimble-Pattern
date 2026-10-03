@@ -64,7 +64,15 @@ public class NimblePattern {
 
     @SubscribeEvent
     public void onServerStarting(ServerStartingEvent event) {
-        // Do something when the server starts
+        PatternUpgradeTracker.instance().clear();
+    }
+
+    @SubscribeEvent
+    public void onServerStopped(net.minecraftforge.event.server.ServerStoppedEvent event) {
+        PatternUpgradeTracker.instance().clear();
+        com.ber.nimblePattern.pattern.ProviderPatternIndex.clear();
+        com.ber.nimblePattern.probability.ProbabilityController.resetTracking();
+        com.ber.nimblePattern.probability.ProbabilityMachines.clear();
     }
 
     @SubscribeEvent

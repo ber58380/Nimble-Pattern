@@ -25,7 +25,12 @@ public final class PatternUpgradeTracker {
     }
 
     private final Set<String> trackedConditions = new HashSet<>();
-    private final LinkedHashSet<String> pendingIds = new LinkedHashSet<>();
+    private final LinkedHashSet<ResourceLocation> pendingIds = new LinkedHashSet<>();
+    private record Location(appeng.api.inventories.InternalInventory inventory, int slot) {}
+    private final Map<String, List<Location>> byCondition = new HashMap<>();
+    private record InventoryIndex(long revision, Map<String, List<Location>> conditions) {}
+    private final Map<appeng.api.inventories.InternalInventory, InventoryIndex> inventories = new IdentityHashMap<>();
+    private int refreshTicks;
 
     private PatternUpgradeTracker() {
     }
@@ -39,35 +44,49 @@ public final class PatternUpgradeTracker {
         return ForgeRegistries.ITEMS.containsKey(id) || ForgeRegistries.FLUIDS.containsKey(id) || ForgeRegistries.BLOCKS.containsKey(id);
     }
 
-    public synchronized void updateTracked(Set<String> conditions) {
-        trackedConditions.clear();
-        if (conditions == null) {
-            return;
-        }
-        for (String condition : conditions) {
-            if (isID(condition)) {
-                trackedConditions.add(condition);
-            }
-        }
-    }
-
     public synchronized boolean isEmpty() {
         return trackedConditions.isEmpty();
     }
 
     public synchronized void enqueueIfTracked(String Id) {
-        if (trackedConditions.contains(Id)) {
-            pendingIds.add(Id);
-        }
+        var id = ResourceLocation.tryParse(Id);
+        if (id != null) enqueueIfTracked(id);
+    }
+
+    public synchronized void enqueueIfTracked(ResourceLocation id) {
+        // Keep arrivals until the next refresh, including newly placed tagged patterns.
+        pendingIds.add(id);
     }
 
     public synchronized void updateStatus() {
+        // Shared, bounded polling also covers third-party inventories without change callbacks.
+        if (++refreshTicks < 20) return;
+        refreshTicks = 0;
+        rebuildIndex();
         if (pendingIds.isEmpty()) {
             return;
         }
-        Set<String> toProcess = new LinkedHashSet<>(pendingIds);
+        var toProcess = new ArrayList<>(pendingIds);
         pendingIds.clear();
         Map<String, Integer> upgradeCounter = new HashMap<>();
+        for (var id : toProcess) {
+            var condition = id.toString();
+            for (var location : byCondition.getOrDefault(condition, List.of())) {
+                var inv = location.inventory();
+                if (location.slot() >= inv.size()) continue;
+                var original = inv.getStackInSlot(location.slot());
+                if (!condition.equals(NimblePatternTag.getCondition(original)) || NimblePatternTag.getStatus(original) == UPDATE) continue;
+                var pattern = original.copy();
+                NimblePatternTag.tagStatus(pattern);
+                inv.setItemDirect(location.slot(), pattern);
+                upgradeCounter.merge(condition, 1, Integer::sum);
+            }
+        }
+        notifyPlayers(upgradeCounter);
+    }
+
+    private void rebuildIndex() {
+        var seen = java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<appeng.api.inventories.InternalInventory, Boolean>());
         for (var grid : TickHandler.instance().getGridList()) {
             for (var machine : grid.getMachineClasses()) {
                 if (PatternContainer.class.isAssignableFrom(machine)) {
@@ -75,22 +94,52 @@ public final class PatternUpgradeTracker {
                     Class<? extends PatternContainer> cls = (Class<? extends PatternContainer>) machine;
                     for (PatternContainer container : grid.getActiveMachines(cls)) {
                         var inv = container.getTerminalPatternInventory();
-                        for (int i = 0; i < inv.size(); i++) {
-                            var pattern = inv.getStackInSlot(i).copy();
-                            if (pattern.isEmpty()) {
-                                continue;
-                            }
+                        if (!seen.add(inv)) continue;
+                        var snapshot = PatternInventorySnapshots.get(inv, true);
+                        var old = inventories.get(inv);
+                        if (old != null && old.revision == snapshot.revision()) continue;
+                        if (old != null) removeIndex(old);
+                        var conditions = new HashMap<String, List<Location>>();
+                        for (int i = 0; i < snapshot.size(); i++) {
+                            var pattern = snapshot.stack(i);
+                            if (pattern.isEmpty()) continue;
                             String condition = NimblePatternTag.getCondition(pattern);
-                            if (toProcess.contains(condition) && NimblePatternTag.getStatus(pattern) != UPDATE) {
-                                NimblePatternTag.tagStatus(pattern);
-                                inv.setItemDirect(i, pattern);
-                                upgradeCounter.merge(condition, 1, Integer::sum);
+                            if (isID(condition)) {
+                                conditions.computeIfAbsent(condition, k -> new ArrayList<>()).add(new Location(inv, i));
                             }
                         }
+                        inventories.put(inv, new InventoryIndex(snapshot.revision(), conditions));
+                        conditions.forEach((condition, locations) ->
+                                byCondition.computeIfAbsent(condition, k -> new ArrayList<>()).addAll(locations));
                     }
                 }
             }
         }
+        var iterator = inventories.entrySet().iterator();
+        while (iterator.hasNext()) {
+            var entry = iterator.next();
+            if (!seen.contains(entry.getKey())) { removeIndex(entry.getValue()); iterator.remove(); }
+        }
+        trackedConditions.clear();
+        trackedConditions.addAll(byCondition.keySet());
+    }
+
+    private void removeIndex(InventoryIndex index) {
+        index.conditions.forEach((condition, locations) -> {
+            var all = byCondition.get(condition);
+            if (all != null) {
+                all.removeAll(locations);
+                if (all.isEmpty()) byCondition.remove(condition);
+            }
+        });
+    }
+
+    public synchronized void clear() {
+        trackedConditions.clear(); pendingIds.clear(); byCondition.clear(); inventories.clear(); refreshTicks = 0;
+        PatternInventorySnapshots.clear();
+    }
+
+    private void notifyPlayers(Map<String, Integer> upgradeCounter) {
         if (upgradeCounter.isEmpty()) {
             return;
         }

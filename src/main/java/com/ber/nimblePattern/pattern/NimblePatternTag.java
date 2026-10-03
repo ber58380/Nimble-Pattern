@@ -2,6 +2,7 @@ package com.ber.nimblePattern.pattern;
 
 import appeng.api.crafting.PatternDetailsHelper;
 import appeng.api.inventories.InternalInventory;
+import appeng.api.stacks.GenericStack;
 import appeng.blockentity.networking.CableBusBlockEntity;
 import appeng.helpers.patternprovider.PatternContainer;
 import com.ber.nimblePattern.NimblePattern;
@@ -11,6 +12,7 @@ import net.minecraft.core.Direction;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
+import net.minecraft.nbt.ListTag;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
@@ -19,6 +21,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
 
 import java.util.List;
+import java.util.ArrayList;
 
 import static com.ber.nimblePattern.pattern.UpdateState.*;
 
@@ -28,6 +31,7 @@ public class NimblePatternTag {
     private static final String SOURCE_TAG = "source";
     // the update tag includes: condition, status
     private static final String UPDATE_TAG = "update";
+    private static final String LOOP_TAG = "loop";
 
     public static void tagSource(ItemStack pattern, ServerLevel level, BlockPos pos, Direction side, int slot) {
         var root = pattern.getOrCreateTagElement(ROOT);
@@ -201,6 +205,81 @@ public class NimblePatternTag {
         removeTag(pattern);
         container.setItemDirect(source.slot(), pattern);
         return true;
+    }
+
+    public static void tagLoop(ItemStack pattern, LoopPatternData data) {
+        pattern.getOrCreateTagElement(ROOT).remove("probability");
+        pattern.getOrCreateTagElement(ROOT).remove("tools");
+        var tag = new CompoundTag();
+        tag.putUUID("group", data.groupId());
+        tag.putUUID("cell", data.storageCellId());
+        tag.putInt("index", data.index());
+        tag.putInt("size", data.size());
+        tag.put("entry", GenericStack.writeTag(data.entry()));
+        tag.put("exit", GenericStack.writeTag(data.exit()));
+        tag.putLong("seed", data.seedAmount());
+        tag.putLong("netOutput", data.netOutputAmount());
+        tag.put("externalInputs", writeGenericStacks(data.externalInputs()));
+        tag.put("mainOutputs", writeGenericStacks(data.mainOutputs()));
+        pattern.getOrCreateTagElement(ROOT).put(LOOP_TAG, tag);
+    }
+
+    public static LoopPatternData getLoopData(ItemStack pattern) {
+        var root = pattern.getTagElement(ROOT);
+        if (root == null || !root.contains(LOOP_TAG, Tag.TAG_COMPOUND)) {
+            return null;
+        }
+        try {
+            var tag = root.getCompound(LOOP_TAG);
+            var entry = GenericStack.readTag(tag.getCompound("entry"));
+            var exit = GenericStack.readTag(tag.getCompound("exit"));
+            if (entry == null || exit == null) {
+                return null;
+            }
+            return new LoopPatternData(
+                    tag.getUUID("group"),
+                    tag.getUUID("cell"),
+                    tag.getInt("index"),
+                    tag.getInt("size"),
+                    entry,
+                    exit,
+                    tag.getLong("seed"),
+                    tag.getLong("netOutput"),
+                    readGenericStacks(tag.getList("externalInputs", Tag.TAG_COMPOUND)),
+                    readGenericStacks(tag.getList("mainOutputs", Tag.TAG_COMPOUND)));
+        } catch (RuntimeException ignored) {
+            return null;
+        }
+    }
+
+    public static void removeLoopTag(ItemStack pattern) {
+        var root = pattern.getTagElement(ROOT);
+        if (root == null) {
+            return;
+        }
+        root.remove(LOOP_TAG);
+        if (root.isEmpty()) {
+            pattern.removeTagKey(ROOT);
+        }
+    }
+
+    private static ListTag writeGenericStacks(List<GenericStack> stacks) {
+        var result = new ListTag();
+        for (var stack : stacks) {
+            result.add(GenericStack.writeTag(stack));
+        }
+        return result;
+    }
+
+    private static List<GenericStack> readGenericStacks(ListTag list) {
+        var result = new ArrayList<GenericStack>(list.size());
+        for (int i = 0; i < list.size(); i++) {
+            var stack = GenericStack.readTag(list.getCompound(i));
+            if (stack != null && stack.amount() > 0) {
+                result.add(stack);
+            }
+        }
+        return result;
     }
 
     public static String getCondition(ItemStack pattern) {

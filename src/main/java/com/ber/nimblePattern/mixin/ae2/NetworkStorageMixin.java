@@ -30,15 +30,14 @@ public class NetworkStorageMixin {
 
     @Inject(method = "insert", at = @At("RETURN"))
     private void validateInsert(AEKey what, long amount, Actionable mode, IActionSource src, CallbackInfoReturnable<Long> cir) {
-        if (mode != Actionable.MODULATE || PatternUpgradeTracker.instance().isEmpty()) {
+        if (mode != Actionable.MODULATE) {
             return;
         }
         long inserted = cir.getReturnValue();
         if (inserted <= 0) {
             return;
         }
-        String id = what.getId().toString();
-        PatternUpgradeTracker.instance().enqueueIfTracked(id);
+        PatternUpgradeTracker.instance().enqueueIfTracked(what.getId());
     }
 
     /**

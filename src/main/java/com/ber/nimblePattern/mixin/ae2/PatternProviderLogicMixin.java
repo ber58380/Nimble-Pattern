@@ -14,7 +14,7 @@ import appeng.crafting.pattern.AEProcessingPattern;
 import appeng.helpers.patternprovider.PatternProviderLogic;
 import appeng.helpers.patternprovider.PatternProviderLogicHost;
 import appeng.util.ConfigManager;
-import com.ber.nimblePattern.pattern.NimbleProcessingPattern;
+import com.ber.nimblePattern.pattern.NimbleEncodedPattern;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.item.ItemStack;
 import org.spongepowered.asm.mixin.Final;
@@ -33,6 +33,9 @@ import java.util.List;
 // mod mae2 will overwrite "pushPattern" function, set a higher priority to mixin later than mae2
 @Mixin(value = PatternProviderLogic.class, remap = false, priority = 1100)
 public class PatternProviderLogicMixin implements IUpgradeableObject {
+    @Unique private List<IPatternDetails> nimble$rawSnapshot = List.of();
+    @Unique private List<IPatternDetails> nimble$compiledPatterns = List.of();
+    @Unique private boolean nimble$compiledFuzzy;
     @Unique
     private IUpgradeInventory upgrades;
     @Shadow
@@ -81,19 +84,27 @@ public class PatternProviderLogicMixin implements IUpgradeableObject {
         this.upgrades.clear();
     }
 
-    // wrap the patterns into NimbleProcessingPattern
+    // wrap the patterns into NimbleEncodedPattern
     @Inject(method = "getAvailablePatterns", at = @At("RETURN"), cancellable = true)
     private void wrapAvailablePatterns(CallbackInfoReturnable<List<IPatternDetails>> cir) {
         var raw = cir.getReturnValue();
+        boolean fuzzy = this.upgrades.isInstalled(AEItems.FUZZY_CARD);
+        boolean unchanged = fuzzy == nimble$compiledFuzzy && raw.size() == nimble$rawSnapshot.size();
+        for (int i = 0; unchanged && i < raw.size(); i++) unchanged = raw.get(i) == nimble$rawSnapshot.get(i);
+        if (unchanged) { cir.setReturnValue(nimble$compiledPatterns); return; }
         var wrapped = new ArrayList<IPatternDetails>(raw.size());
         for (var pattern : raw) {
-            if (pattern instanceof AEProcessingPattern aep) {
-                wrapped.add(new NimbleProcessingPattern(aep, this.upgrades.isInstalled(AEItems.FUZZY_CARD)));
+            if (!(pattern instanceof NimbleEncodedPattern)) {
+                wrapped.add(NimbleEncodedPattern.wrap(pattern,
+                        pattern instanceof AEProcessingPattern && fuzzy));
             } else {
                 wrapped.add(pattern);
             }
         }
-        cir.setReturnValue(wrapped);
+        nimble$rawSnapshot = List.copyOf(raw);
+        nimble$compiledPatterns = List.copyOf(wrapped);
+        nimble$compiledFuzzy = fuzzy;
+        cir.setReturnValue(nimble$compiledPatterns);
     }
 
     @Redirect(
@@ -104,7 +115,7 @@ public class PatternProviderLogicMixin implements IUpgradeableObject {
         if (patterns.contains(patternDetails)) {
             return true;
         }
-        if (patternDetails instanceof NimbleProcessingPattern npp) {
+        if (patternDetails instanceof NimbleEncodedPattern npp) {
             for (var pattern : patterns) {
                 if (pattern.equals(npp.getPattern())) {
                     return true;

@@ -111,6 +111,12 @@ minecraft {
         // The gametest system is also enabled by default for other run configs under the /test command.
         gameTestServer {
             property 'forge.enabledGameTestNamespaces', mod_id
+            workingDirectory project.file('run-gametest')
+            mods {
+                "${mod_id}" {
+                    source sourceSets.test
+                }
+            }
         }
 
         data {
@@ -163,12 +169,15 @@ dependencies {
     runtimeOnly fg.deobf("org.appliedenergistics:guideme:${guideme_version}")
     implementation fg.deobf("appeng:appliedenergistics2-forge:${ae2_version}")
     compileOnly fg.deobf("curse.maven:just-enough-characters-250702:8583972")
-    runtimeOnly fg.deobf("curse.maven:just-enough-characters-250702:8583972")
+    // This client-only mod cannot be loaded by the dedicated GameTest server.
+    if (!gradle.startParameter.taskNames.any { it.toLowerCase().contains('gametest') }) {
+        runtimeOnly fg.deobf("curse.maven:just-enough-characters-250702:8583972")
+    }
     // dependency of extendedAE
     runtimeOnly fg.deobf("curse.maven:glodium-957920:5226922")
     compileOnly fg.deobf("curse.maven:ex-pattern-provider-892005:8615273")
     runtimeOnly fg.deobf("curse.maven:ex-pattern-provider-892005:8615273")
-//    runtimeOnly fg.deobf("mezz.jei:jei-${minecraft_version}-forge:15.20.0.129")
+    runtimeOnly fg.deobf("mezz.jei:jei-${minecraft_version}-forge:15.20.0.129")
     runtimeOnly fg.deobf("curse.maven:jade-324717:6855440")
 
     // dependency of gtceu
@@ -217,4 +226,12 @@ tasks.named('jar', Jar).configure {
 
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8' // Use the UTF-8 charset for Java compilation
+}
+
+tasks.register('prepareToolTestStructures', Copy) {
+    from 'src/test/structures'
+    into 'run-gametest/gameteststructures'
+}
+tasks.matching { it.name == 'runGameTestServer' }.configureEach {
+    dependsOn 'prepareToolTestStructures'
 }

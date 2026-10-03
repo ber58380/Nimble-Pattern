@@ -4,10 +4,12 @@ import appeng.api.stacks.GenericStack;
 import appeng.client.Point;
 import appeng.client.gui.WidgetContainer;
 import appeng.client.gui.style.Blitter;
+import appeng.client.gui.widgets.TabButton;
 import com.ber.nimblePattern.NimblePattern;
 import com.ber.nimblePattern.client.gui.widgets.NimbleButton;
 import com.ber.nimblePattern.client.gui.PatternTagTermScreen;
 import com.ber.nimblePattern.client.gui.widgets.PromptTextField;
+import com.ber.nimblePattern.client.gui.widgets.TextureTabButton;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
@@ -15,7 +17,6 @@ import net.minecraft.client.renderer.Rect2i;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
 import net.minecraftforge.registries.ForgeRegistries;
 
 import java.util.Set;
@@ -93,8 +94,9 @@ public class PatternUpgradePanel extends TagModePanel {
     }
 
     @Override
-    public ItemStack getTabIconItem() {
-        return Items.FURNACE.getDefaultInstance();
+    public TabButton createTabButton(Button.OnPress onPress) {
+        return new TextureTabButton(ResourceLocation.fromNamespaceAndPath(
+                NimblePattern.MOD_ID, "textures/guis/tabs/upgrade.png"), getTabTooltip(), onPress);
     }
 
     @Override

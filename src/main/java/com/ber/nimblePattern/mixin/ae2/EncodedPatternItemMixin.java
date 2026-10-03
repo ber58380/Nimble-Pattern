@@ -21,6 +21,18 @@ import java.util.List;
 public abstract class EncodedPatternItemMixin {
     @Inject(method = "appendHoverText", at = @At("TAIL"))
     private void addUpdateInfo(ItemStack stack, Level level, List<Component> lines, TooltipFlag advancedTooltips, CallbackInfo ci) {
+        if (com.ber.nimblePattern.probability.ProbabilityEncoding.marked(stack)) {
+            lines.add(Component.translatable("tooltip.nimble_pattern.probability").withStyle(ChatFormatting.LIGHT_PURPLE));
+        }
+        var tools = com.ber.nimblePattern.pattern.ToolPatternData.read(stack);
+        if (!tools.isEmpty()) {
+            lines.add(Component.translatable("gui.nimble_pattern.pattern_tag_terminal.tab.tool")
+                    .withStyle(ChatFormatting.AQUA));
+            for (var tool : tools) {
+                lines.add(Component.literal("  ").append(((appeng.api.stacks.AEItemKey) tool.what()).toStack().getHoverName())
+                        .withStyle(ChatFormatting.GRAY));
+            }
+        }
         String condition = NimblePatternTag.getCondition(stack);
         if (condition.isEmpty()) {
             return;

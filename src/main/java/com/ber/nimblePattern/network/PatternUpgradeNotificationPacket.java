@@ -33,7 +33,13 @@ public class PatternUpgradeNotificationPacket {
     }
 
     public static void handle(PatternUpgradeNotificationPacket msg, Supplier<NetworkEvent.Context> ctx) {
-        ctx.get().enqueueWork(() -> {
+        ctx.get().enqueueWork(() -> net.minecraftforge.fml.DistExecutor.unsafeRunWhenOn(
+                net.minecraftforge.api.distmarker.Dist.CLIENT, () -> () -> ClientHandler.show(msg)));
+        ctx.get().setPacketHandled(true);
+    }
+
+    private static final class ClientHandler {
+        private static void show(PatternUpgradeNotificationPacket msg) {
             var minecraft = Minecraft.getInstance();
             // since the upgrade terminal is opened, do not send toast
             if (minecraft.screen instanceof PatternTagTermScreen) {
@@ -56,7 +62,6 @@ public class PatternUpgradeNotificationPacket {
                 }
             }
             minecraft.getToasts().addToast(new PatternUpgradeToast(msg.condition, msg.count, what));
-        });
-        ctx.get().setPacketHandled(true);
+        }
     }
 }

@@ -48,12 +48,18 @@ public class PatternTagTerminalPart extends AbstractDisplayPart implements IConf
         for (var is : this.logic.getInputPatternInv()) {
             drops.add(is);
         }
+        for (var is : this.logic.getLoopStorageCellInv()) {
+            drops.add(is);
+        }
     }
 
     @Override
     public void clearContent() {
         super.clearContent();
         this.logic.getInputPatternInv().clear();
+        this.logic.getLoopEndpointInv().clear();
+        this.logic.getToolInv().clear();
+        this.logic.getLoopStorageCellInv().clear();
     }
 
     @Override

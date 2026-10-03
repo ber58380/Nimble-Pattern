@@ -7,6 +7,7 @@
     "tag/loop.json"
   ],
   "slots": {
+    "TOOL_INPUT": { "left": 98, "bottom": 157, "grid": "BREAK_AFTER_2COLS" },
     "INPUT_PATTERN": {
       "left": 25,
       "bottom": 157,
@@ -15,6 +16,18 @@
     "CONDITION_ITEM": {
       "left": 98,
       "bottom": 121
+    },
+    "LOOP_INPUT": {
+      "left": 98,
+      "bottom": 157
+    },
+    "LOOP_OUTPUT": {
+      "left": 98,
+      "bottom": 121
+    },
+    "LOOP_LOCK_STORAGE_CELL": {
+      "left": 148,
+      "bottom": 157
     }
   },
   "terminalStyle": {
@@ -76,6 +89,9 @@
     }
   },
   "widgets": {
+    "modeTabButton2": { "left": 175, "bottom": 132, "width": 22, "height": 22 },
+    "modePanel2": { "left": 88, "bottom": 166 },
+    "toolApplyButton": { "left": 129, "bottom": 112, "width": 40, "height": 15 },
     "modeTabButton0": {
       "left": 175,
       "bottom": 174,

@@ -21,7 +21,7 @@ public final class LoopStorageCellVisibility {
         return cell != null && !(cell instanceof LoopStorageCellInventory);
     }
 
-    private static StorageCell unwrapCell(MEStorage storage) {
+    public static StorageCell unwrapCell(MEStorage storage) {
         Set<MEStorage> visited = Collections.newSetFromMap(new IdentityHashMap<>());
         while (storage != null && visited.add(storage)) {
             if (storage instanceof StorageCell cell) {

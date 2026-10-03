@@ -15,6 +15,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.UUID;
 
 /**
  * Mixed item/fluid inventory used by every loop storage cell tier.
@@ -66,7 +67,10 @@ public final class LoopStorageCellInventory implements StorageCell {
     @Override
     public long extract(AEKey what, long amount, Actionable mode, IActionSource source) {
         MEStorage.checkPreconditions(what, amount, mode, source);
-        return 0;
+        if (!isIoPortTarget(source)) {
+            return 0;
+        }
+        return extractStored(what, amount, mode);
     }
 
     @Override
@@ -84,7 +88,7 @@ public final class LoopStorageCellInventory implements StorageCell {
         if (contents.isEmpty()) {
             return CellState.EMPTY;
         }
-        return canAcceptConfiguredContent() ? CellState.NOT_EMPTY : CellState.FULL;
+        return getUsedBytes() >= item.getCapacityBytes() ? CellState.FULL : CellState.NOT_EMPTY;
     }
 
     @Override
@@ -111,20 +115,57 @@ public final class LoopStorageCellInventory implements StorageCell {
         dirty = false;
     }
 
-    private boolean isIoPortTarget(IActionSource source) {
-        // The I/O port also uses its own source while inserting into the network. Requiring a host-less
-        // inventory distinguishes the cell physically inside the port from a loop cell mounted in a drive.
-        return host == null && source.machine().filter(IOPortBlockEntity.class::isInstance).isPresent();
+    public UUID getCellId() {
+        return item.getCellId(stack);
     }
 
-    private boolean canAcceptConfiguredContent() {
-        for (var entry : item.getConfiguredAmounts(stack).entrySet()) {
-            var current = contents.getOrDefault(entry.getKey(), 0L);
-            if (current < entry.getValue() && current < getCapacityForKey(entry.getKey(), current)) {
-                return true;
-            }
+    public long extractForLoop(AEKey what, long amount, Actionable mode) {
+        if (amount <= 0 || item.getConfiguredAmount(stack, what) <= 0) {
+            return 0;
         }
-        return false;
+        return extractStored(what, amount, mode);
+    }
+
+    private long extractStored(AEKey what, long amount, Actionable mode) {
+        long extracted = Math.min(amount, contents.getOrDefault(what, 0L));
+        if (extracted > 0 && mode == Actionable.MODULATE) {
+            long remaining = contents.get(what) - extracted;
+            if (remaining == 0) {
+                contents.remove(what);
+            } else {
+                contents.put(what, remaining);
+            }
+            saveDirectChange();
+        }
+        return extracted;
+    }
+
+    public long insertForLoop(AEKey what, long amount, Actionable mode) {
+        if (amount <= 0) {
+            return 0;
+        }
+        long target = item.getConfiguredAmount(stack, what);
+        long current = contents.getOrDefault(what, 0L);
+        long accepted = Math.min(amount, Math.max(0, target - current));
+        if (accepted > 0 && mode == Actionable.MODULATE) {
+            contents.put(what, current + accepted);
+            saveDirectChange();
+        }
+        return accepted;
+    }
+
+    private void saveDirectChange() {
+        dirty = true;
+        persist();
+        if (host != null) {
+            host.saveChanges();
+        }
+    }
+
+    private boolean isIoPortTarget(IActionSource source) {
+        // Both transfer directions use the port's action source. Require its host-less cell inventory so a port
+        // cannot extract from (or insert into) another loop cell mounted in a network drive.
+        return host == null && source.machine().filter(IOPortBlockEntity.class::isInstance).isPresent();
     }
 
     private long getCapacityForKey(AEKey key, long currentAmount) {
@@ -135,11 +176,7 @@ public final class LoopStorageCellInventory implements StorageCell {
     }
 
     private long getUsedBytes() {
-        long used = 0;
-        for (var entry : contents.entrySet()) {
-            used = saturatedAdd(used, bytesUsed(entry.getKey(), entry.getValue()));
-        }
-        return used;
+        return LoopStorageCellItem.bytesUsed(contents);
     }
 
     private static long bytesUsed(AEKey key, long amount) {
@@ -148,10 +185,6 @@ public final class LoopStorageCellInventory implements StorageCell {
         }
         var perByte = key.getAmountPerByte();
         return 1 + (amount - 1) / perByte;
-    }
-
-    private static long saturatedAdd(long a, long b) {
-        return a > Long.MAX_VALUE - b ? Long.MAX_VALUE : a + b;
     }
 
     private static long saturatedMultiply(long a, long b) {

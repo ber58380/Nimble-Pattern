@@ -20,4 +20,6 @@ hs_err_pid*
 # Common working directory
 run
 /run-data/
+/run-gametest/
 /src/generated/resources/.cache/
+/optimization-test.log

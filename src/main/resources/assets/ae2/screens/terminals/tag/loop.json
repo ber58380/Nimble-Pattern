@@ -1,4 +1,12 @@
 {
-  "__comment": "Describes the parts of the pattern tag terminal that relate to tag upgrade conditions on patterns",
-  "$schema": "../../schema.json"
+  "__comment": "Describes the loop-pattern controls of the pattern tag terminal",
+  "$schema": "../../schema.json",
+  "widgets": {
+    "loopApplyButton": {
+      "left": 129,
+      "bottom": 112,
+      "width": 40,
+      "height": 15
+    }
+  }
 }
