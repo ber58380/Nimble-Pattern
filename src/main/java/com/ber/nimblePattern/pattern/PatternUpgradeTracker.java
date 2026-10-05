@@ -19,15 +19,14 @@ import static com.ber.nimblePattern.pattern.UpdateState.UPDATE;
 
 public final class PatternUpgradeTracker {
     private static final PatternUpgradeTracker INSTANCE = new PatternUpgradeTracker();
-
-    public static PatternUpgradeTracker instance() {
-        return INSTANCE;
-    }
-
     private final Set<String> trackedConditions = new HashSet<>();
     private final LinkedHashSet<String> pendingIds = new LinkedHashSet<>();
 
     private PatternUpgradeTracker() {
+    }
+
+    public static PatternUpgradeTracker instance() {
+        return INSTANCE;
     }
 
     private static boolean isID(String condition) {

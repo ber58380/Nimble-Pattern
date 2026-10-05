@@ -1,7 +1,6 @@
 {
   "gui.nimble_pattern.pattern_tag_terminal.apply": "Apply",
   "gui.nimble_pattern.pattern_tag_terminal.clear": "Clear",
-  "gui.nimble_pattern.pattern_tag_terminal.conditions": "Upgrade Conditions",
   "gui.nimble_pattern.pattern_tag_terminal.search_tooltip_condition": "Use % to search by conditions (%UHV)",
   "gui.nimble_pattern.pattern_tag_terminal.search_tooltip_status": "Use ~ to search by status (~UPGRADE)",
   "gui.nimble_pattern.pattern_tag_terminal.tab.loop": "Loop Patterns",

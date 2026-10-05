@@ -11,6 +11,7 @@ import appeng.helpers.patternprovider.PatternProviderLogicHost;
 import appeng.menu.AEBaseMenu;
 import appeng.menu.SlotSemantic;
 import appeng.menu.SlotSemantics;
+import appeng.menu.guisync.GuiSync;
 import appeng.menu.implementations.MenuTypeBuilder;
 import appeng.menu.slot.DisabledSlot;
 import appeng.menu.slot.FakeSlot;
@@ -20,6 +21,7 @@ import appeng.parts.crafting.PatternProviderPart;
 import appeng.util.inv.AppEngInternalInventory;
 import com.ber.nimblePattern.compat.extendedae.ExtendedAECompat;
 import com.ber.nimblePattern.helpers.IPatternTagMenuHost;
+import com.ber.nimblePattern.menu.slot.LoopStorageCellSlot;
 import com.ber.nimblePattern.network.*;
 import com.ber.nimblePattern.parts.PatternTagLogic;
 import com.ber.nimblePattern.parts.TagMode;
@@ -47,36 +49,39 @@ import java.util.stream.Collectors;
 
 import static appeng.helpers.InventoryAction.PICKUP_OR_SET_DOWN;
 import static appeng.helpers.InventoryAction.SPLIT_OR_PLACE_SINGLE;
+import static com.ber.nimblePattern.menu.SlotSemantics.*;
 import static com.ber.nimblePattern.parts.PatternTagLogic.INPUT_PATTERN_SLOTS;
 
 public class PatternTagTermMenu extends AEBaseMenu {
+    // dummy pattern provider, used for rendering the blank slots in the last row
+    public static final long VIRTUAL_ID = Long.MAX_VALUE;
     public static final MenuType<PatternTagTermMenu> TYPE = MenuTypeBuilder
             .create(PatternTagTermMenu::new, IPatternTagMenuHost.class)
             .build("patterntagterminal");
-
+    public static final AppEngInternalInventory VIRTUAL_INV = new AppEngInternalInventory(9);
     private static long inventorySerial = Long.MIN_VALUE;
     // Pattern provider -> Container information
     private final Map<PatternContainer, ContainerTracker> diList = new IdentityHashMap<>();
     // Pattern provider temp id -> Container information
     private final Long2ObjectOpenHashMap<ContainerTracker> byId = new Long2ObjectOpenHashMap<>();
-
-    public TagMode mode = TagMode.UPGRADE;
-
-    public static final SlotSemantic INPUT_PATTERN = SlotSemantics.register("INPUT_PATTERN", false);
-    public static final SlotSemantic CONDITION_ITEM = SlotSemantics.register("CONDITION_ITEM", false);
     private final IPatternTagMenuHost host;
     private final PatternTagLogic tagLogic;
     private final InternalInventory inputPatternInv;
     private final InternalInventory conditionItemInv;
+    private final InternalInventory loopEndpointInv;
+    private final InternalInventory loopStorageCellInv;
     private final RestrictedInputSlot[] inputPatternSlots = new RestrictedInputSlot[INPUT_PATTERN_SLOTS];
-    // dummy pattern provider, used for rendering the blank slots in the last row
-    public static final long VIRTUAL_ID = Long.MAX_VALUE;
-    public static final AppEngInternalInventory VIRTUAL_INV = new AppEngInternalInventory(9);
     private final FakeSlot conditionItemSlot;
-    private Set<String> conditionsHistory = new LinkedHashSet<>();
+    private final FakeSlot loopInputSlot;
+    private final FakeSlot loopOutputSlot;
+    private final LoopStorageCellSlot loopStorageCellSlot;
     // Number of patterns currently using each non-empty upgrade condition.
     // Incremental updates only need to touch conditions of changed slots.
     private final Map<String, Integer> conditionRefCounts = new HashMap<>();
+
+    @GuiSync(97)
+    public TagMode mode;
+    private Set<String> conditionsHistory = new LinkedHashSet<>();
 
     public PatternTagTermMenu(int id, Inventory ip, IPatternTagMenuHost host) {
         this(TYPE, id, ip, host, true);
@@ -86,6 +91,8 @@ public class PatternTagTermMenu extends AEBaseMenu {
         super(menuType, id, ip, host);
         this.host = host;
         this.tagLogic = host.getLogic();
+        this.mode = tagLogic.getMode();
+        // input pattern slots (shared)
         this.inputPatternInv = tagLogic.getInputPatternInv();
         for (int i = 0; i < INPUT_PATTERN_SLOTS; i++) {
             var slot = new RestrictedInputSlot(RestrictedInputSlot.PlacableItemType.ENCODED_PATTERN, inputPatternInv, i);
@@ -93,22 +100,39 @@ public class PatternTagTermMenu extends AEBaseMenu {
             this.inputPatternSlots[i] = slot;
             this.addSlot(slot, INPUT_PATTERN);
         }
+        // upgrade panel
         this.conditionItemInv = tagLogic.getConditionItemInv();
         this.conditionItemSlot = new FakeSlot(conditionItemInv, 0);
-        this.addSlot(conditionItemSlot, CONDITION_ITEM);
+        this.addSlot(conditionItemSlot, UPGRADE_CONDITION);
+        // loop panel
+        this.loopEndpointInv = tagLogic.getLoopEndpointInv();
+        this.loopStorageCellInv = tagLogic.getLoopStorageCellInv();
+        this.loopInputSlot = new FakeSlot(loopEndpointInv, 0);
+        this.loopOutputSlot = new FakeSlot(loopEndpointInv, 1);
+        this.loopStorageCellSlot = new LoopStorageCellSlot(loopStorageCellInv, 0);
+        this.addSlot(loopInputSlot, LOOP_INPUT);
+        this.addSlot(loopOutputSlot, LOOP_OUTPUT);
+        this.addSlot(loopStorageCellSlot, LOOP_STORAGE_CELL);
+
         if (bindInventory) {
             this.createPlayerInventorySlots(ip);
         }
-        registerClientAction("applyCondition", String.class, this::applyCondition);
-        registerClientAction("clearCondition", this::clearCondition);
+        registerClientAction("setMode", TagMode.class, this::setMode);
+        registerClientAction("applyCondition", String.class, this::applyUpgradeCondition);
+        registerClientAction("clearCondition", this::clearUpgradeCondition);
+        registerClientAction("applyLoop", this::applyLoop);
+    }
+
+    private static String getCondition(ItemStack pattern) {
+        if (pattern.isEmpty()) {
+            return "";
+        }
+        var condition = NimblePatternTag.getCondition(pattern);
+        return condition == null ? "" : condition;
     }
 
     public RestrictedInputSlot[] getInputPatternSlots() {
         return inputPatternSlots;
-    }
-
-    public InternalInventory getInputPatternInv() {
-        return inputPatternInv;
     }
 
     public FakeSlot getConditionItemSlot() {
@@ -120,7 +144,94 @@ public class PatternTagTermMenu extends AEBaseMenu {
     }
 
     public void setMode(TagMode mode) {
+        if (isClientSide()) {
+            sendClientAction("setMode", mode);
+            return;
+        }
         this.mode = mode;
+        tagLogic.setMode(mode);
+    }
+
+    @Nullable
+    private static ServerLevel getContainerLevel(PatternContainer container) {
+        if (container instanceof PatternProviderLogicHost host) {
+            var block = host.getBlockEntity();
+            if (block != null && block.getLevel() instanceof ServerLevel serverLevel) {
+                return serverLevel;
+            }
+        }
+
+        // assembler matrix of extendedAE
+        if (container instanceof BlockEntity block) {
+            if (block.getLevel() instanceof ServerLevel serverLevel) {
+                return serverLevel;
+            }
+        }
+
+        try {
+            // machine of GT series are wrapped in IMachineBlockEntity
+            var machine = container.getClass().getMethod("getLevel");
+            var level = machine.invoke(container);
+            if (level instanceof ServerLevel serverLevel) {
+                return serverLevel;
+            }
+        } catch (Exception ignore) {
+        }
+
+        try {
+            var machine = container.getClass().getMethod("getBlockEntity");
+            var block = machine.invoke(container);
+            if (block instanceof BlockEntity b && b.getLevel() instanceof ServerLevel serverLevel) {
+                return serverLevel;
+            }
+        } catch (Exception ignore) {
+        }
+        return null;
+    }
+
+    @Nullable
+    private static BlockPos getContainerPos(PatternContainer container) {
+        if (container instanceof PatternProviderLogicHost host) {
+            return host.getBlockEntity().getBlockPos();
+        }
+
+        // assembler matrix of extendedAE
+        if (container instanceof BlockEntity block) {
+            return block.getBlockPos();
+        }
+
+        try {
+            var machine = container.getClass().getMethod("getPos");
+            return (BlockPos) machine.invoke(container);
+        } catch (Exception ignore) {
+        }
+
+        try {
+            var machine = container.getClass().getMethod("getBlockPos");
+            return (BlockPos) machine.invoke(container);
+        } catch (Exception ignore) {
+        }
+        return null;
+    }
+
+    @Nullable
+    private static Direction getContainerSide(PatternContainer container) {
+        if (container instanceof PatternProviderPart pp) {
+            return pp.getSide();
+        }
+        // extendedAE's pattern provider part
+        if (ExtendedAECompat.LOADED) {
+            return ExtendedAECompat.getSide(container);
+        }
+        // all GT series are blocks, not parts
+        return null;
+    }
+
+    private static Class<? extends PatternContainer> tryCastMachineToContainer(Class<?> machineClass) {
+        if (PatternContainer.class.isAssignableFrom(machineClass)) {
+            return machineClass.asSubclass(PatternContainer.class);
+        }
+        return null;
     }
 
     @SuppressWarnings("unchecked")
@@ -128,6 +239,9 @@ public class PatternTagTermMenu extends AEBaseMenu {
     public void broadcastChanges() {
         if (isClientSide()) {
             return;
+        }
+        if (this.mode != tagLogic.getMode()) {
+            this.mode = tagLogic.getMode();
         }
         super.broadcastChanges();
         IGrid grid = getGrid();
@@ -158,13 +272,6 @@ public class PatternTagTermMenu extends AEBaseMenu {
         return null;
     }
 
-    private static class VisitorState {
-        // Total number of pattern provider hosts found
-        int total;
-        // Set to true if any visited machines were missing from diList, or had a different name
-        boolean forceFullUpdate;
-    }
-
     private <T extends PatternContainer> void visitPatternProviderHosts(IGrid grid, Class<T> machineClass, VisitorState state) {
         for (var container : grid.getActiveMachines(machineClass)) {
             var t = this.diList.get(container);
@@ -173,14 +280,6 @@ public class PatternTagTermMenu extends AEBaseMenu {
             }
             state.total++;
         }
-    }
-
-    private static String getCondition(ItemStack pattern) {
-        if (pattern.isEmpty()) {
-            return "";
-        }
-        var condition = NimblePatternTag.getCondition(pattern);
-        return condition == null ? "" : condition;
     }
 
     private void addCondition(ItemStack pattern) {
@@ -225,7 +324,7 @@ public class PatternTagTermMenu extends AEBaseMenu {
         }
     }
 
-    public void applyCondition(String condition) {
+    public void applyUpgradeCondition(String condition) {
         if (isClientSide()) {
             sendClientAction("applyCondition", condition);
             return;
@@ -244,7 +343,7 @@ public class PatternTagTermMenu extends AEBaseMenu {
         }
     }
 
-    public void clearCondition() {
+    public void clearUpgradeCondition() {
         if (isClientSide()) {
             sendClientAction("clearCondition");
             return;
@@ -258,6 +357,15 @@ public class PatternTagTermMenu extends AEBaseMenu {
             NimblePatternTag.removeConditionTag(pattern);
             inputPatternInv.setItemDirect(i, pattern);
         }
+    }
+
+    public void applyLoop() {
+        if (isClientSide()) {
+            sendClientAction("applyLoop");
+            return;
+        }
+        // TODO:实现loop页apply的逻辑
+        int i = 0;
     }
 
     private void sendFullUpdate(@Nullable IGrid grid) {
@@ -447,17 +555,14 @@ public class PatternTagTermMenu extends AEBaseMenu {
         return super.quickMoveStack(player, idx);
     }
 
+    private static class VisitorState {
+        // Total number of pattern provider hosts found
+        int total;
+        // Set to true if any visited machines were missing from diList, or had a different name
+        boolean forceFullUpdate;
+    }
+
     private static class ContainerTracker {
-        @FunctionalInterface
-        private interface FullSlotConsumer {
-            void accept(ItemStack pattern);
-        }
-
-        @FunctionalInterface
-        private interface ChangedSlotConsumer {
-            void accept(ItemStack oldPattern, ItemStack newPattern);
-        }
-
         private final PatternContainer container;
         private final long serverId = inventorySerial++;
         // This is used to track the inventory contents we sent to the client for change detection
@@ -469,6 +574,18 @@ public class PatternTagTermMenu extends AEBaseMenu {
             this.container = container;
             this.server = patterns;
             this.client = new AppEngInternalInventory(this.server.size());
+        }
+
+        private static boolean isDifferent(ItemStack a, ItemStack b) {
+            if (a.isEmpty() && b.isEmpty()) {
+                return false;
+            }
+
+            if (a.isEmpty() || b.isEmpty()) {
+                return true;
+            }
+
+            return !ItemStack.matches(a, b);
         }
 
         public PatternPacket createFullPacket(FullSlotConsumer conditionConsumer) {
@@ -520,98 +637,16 @@ public class PatternTagTermMenu extends AEBaseMenu {
             return changedSlots;
         }
 
-        private static boolean isDifferent(ItemStack a, ItemStack b) {
-            if (a.isEmpty() && b.isEmpty()) {
-                return false;
-            }
+        @FunctionalInterface
+        private interface FullSlotConsumer {
+            void accept(ItemStack pattern);
+        }
 
-            if (a.isEmpty() || b.isEmpty()) {
-                return true;
-            }
-
-            return !ItemStack.matches(a, b);
+        @FunctionalInterface
+        private interface ChangedSlotConsumer {
+            void accept(ItemStack oldPattern, ItemStack newPattern);
         }
     }
 
-    @Nullable
-    private static ServerLevel getContainerLevel(PatternContainer container) {
-        if (container instanceof PatternProviderLogicHost host) {
-            var block = host.getBlockEntity();
-            if (block != null && block.getLevel() instanceof ServerLevel serverLevel) {
-                return serverLevel;
-            }
-        }
 
-        // assembler matrix of extendedAE
-        if (container instanceof BlockEntity block) {
-            if (block.getLevel() instanceof ServerLevel serverLevel) {
-                return serverLevel;
-            }
-        }
-
-        try {
-            // machine of GT series are wrapped in IMachineBlockEntity
-            var machine = container.getClass().getMethod("getLevel");
-            var level = machine.invoke(container);
-            if (level instanceof ServerLevel serverLevel) {
-                return serverLevel;
-            }
-        } catch (Exception ignore) {
-        }
-
-        try {
-            var machine = container.getClass().getMethod("getBlockEntity");
-            var block = machine.invoke(container);
-            if (block instanceof BlockEntity b && b.getLevel() instanceof ServerLevel serverLevel) {
-                return serverLevel;
-            }
-        } catch (Exception ignore) {
-        }
-        return null;
-    }
-
-    @Nullable
-    private static BlockPos getContainerPos(PatternContainer container) {
-        if (container instanceof PatternProviderLogicHost host) {
-            return host.getBlockEntity().getBlockPos();
-        }
-
-        // assembler matrix of extendedAE
-        if (container instanceof BlockEntity block) {
-            return block.getBlockPos();
-        }
-
-        try {
-            var machine = container.getClass().getMethod("getPos");
-            return (BlockPos) machine.invoke(container);
-        } catch (Exception ignore) {
-        }
-
-        try {
-            var machine = container.getClass().getMethod("getBlockPos");
-            return (BlockPos) machine.invoke(container);
-        } catch (Exception ignore) {
-        }
-        return null;
-    }
-
-    @Nullable
-    private static Direction getContainerSide(PatternContainer container) {
-        if (container instanceof PatternProviderPart pp) {
-            return pp.getSide();
-        }
-        // extendedAE's pattern provider part
-        if (ExtendedAECompat.LOADED) {
-            return ExtendedAECompat.getSide(container);
-        }
-        // all GT series are blocks, not parts
-        return null;
-    }
-
-    private static Class<? extends PatternContainer> tryCastMachineToContainer(Class<?> machineClass) {
-        if (PatternContainer.class.isAssignableFrom(machineClass)) {
-            return machineClass.asSubclass(PatternContainer.class);
-        }
-        return null;
-    }
 }

@@ -10,10 +10,9 @@ import java.util.WeakHashMap;
 import java.util.function.Predicate;
 
 public class PatternSearch {
-    private String query = "";
-
-    private Predicate<ItemStack> search = (e) -> true;
     final Map<AEKey, String> tooltipCache = new WeakHashMap<>();
+    private String query = "";
+    private Predicate<ItemStack> search = (e) -> true;
 
     public PatternSearch() {
     }

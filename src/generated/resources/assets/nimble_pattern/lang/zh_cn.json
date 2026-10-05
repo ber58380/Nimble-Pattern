@@ -1,7 +1,6 @@
 {
   "gui.nimble_pattern.pattern_tag_terminal.apply": "应用",
   "gui.nimble_pattern.pattern_tag_terminal.clear": "清除",
-  "gui.nimble_pattern.pattern_tag_terminal.conditions": "更新条件",
   "gui.nimble_pattern.pattern_tag_terminal.search_tooltip_condition": "用 % 按更新条件搜索(%UHV)",
   "gui.nimble_pattern.pattern_tag_terminal.search_tooltip_status": "用 ~ 按更新状态搜索(~UPGRADE)",
   "gui.nimble_pattern.pattern_tag_terminal.tab.loop": "循环样板",

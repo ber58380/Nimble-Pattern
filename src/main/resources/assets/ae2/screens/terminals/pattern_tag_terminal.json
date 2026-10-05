@@ -12,9 +12,21 @@
       "bottom": 157,
       "grid": "BREAK_AFTER_3COLS"
     },
-    "CONDITION_ITEM": {
+    "UPGRADE_CONDITION": {
       "left": 98,
       "bottom": 121
+    },
+    "LOOP_INPUT": {
+      "left": 98,
+      "bottom": 157
+    },
+    "LOOP_OUTPUT": {
+      "left": 98,
+      "bottom": 121
+    },
+    "LOOP_STORAGE_CELL": {
+      "left": 148,
+      "bottom": 157
     }
   },
   "terminalStyle": {

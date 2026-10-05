@@ -31,6 +31,13 @@ public class PatternPacket {
         }
     }
 
+    private PatternPacket(boolean fullUpdate, long inventoryId, int inventorySize, Int2ObjectMap<ItemStack> slots) {
+        this.fullUpdate = fullUpdate;
+        this.inventoryId = inventoryId;
+        this.inventorySize = inventorySize;
+        this.slots = slots;
+    }
+
     public static void encode(PatternPacket msg, FriendlyByteBuf buf) {
         buf.writeVarLong(msg.inventoryId);
         buf.writeBoolean(msg.fullUpdate);
@@ -59,13 +66,6 @@ public class PatternPacket {
             }
         });
         ctx.get().setPacketHandled(true);
-    }
-
-    private PatternPacket(boolean fullUpdate, long inventoryId, int inventorySize, Int2ObjectMap<ItemStack> slots) {
-        this.fullUpdate = fullUpdate;
-        this.inventoryId = inventoryId;
-        this.inventorySize = inventorySize;
-        this.slots = slots;
     }
 
     public static PatternPacket fullUpdate(long inventoryId, int inventorySize, Int2ObjectMap<ItemStack> slots) {

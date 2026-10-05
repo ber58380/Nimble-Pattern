@@ -14,7 +14,6 @@ public class ModZhCnLangProvider extends LanguageProvider {
         add("item.nimble_pattern.pattern_tag_terminal", "样板标记终端");
         add("gui.nimble_pattern.pattern_tag_terminal.search_tooltip_condition", "用 % 按更新条件搜索(%UHV)");
         add("gui.nimble_pattern.pattern_tag_terminal.search_tooltip_status", "用 ~ 按更新状态搜索(~UPGRADE)");
-        add("gui.nimble_pattern.pattern_tag_terminal.conditions", "更新条件");
         add("gui.nimble_pattern.pattern_tag_terminal.clear", "清除");
         add("gui.nimble_pattern.pattern_tag_terminal.apply", "应用");
         add("gui.nimble_pattern.pattern_tag_terminal.tab.upgrade", "更新样板");

@@ -10,6 +10,9 @@ import net.minecraftforge.fml.ModList;
 public final class ExtendedAECompat {
     public static final boolean LOADED = ModList.get().isLoaded("expatternprovider");
 
+    private ExtendedAECompat() {
+    }
+
     public static Direction getSide(PatternContainer container) {
         if (container instanceof PartExPatternProvider provider) {
             return provider.getSide();
@@ -22,8 +25,5 @@ public final class ExtendedAECompat {
             return provider.getTerminalPatternInventory();
         }
         return null;
-    }
-
-    private ExtendedAECompat() {
     }
 }

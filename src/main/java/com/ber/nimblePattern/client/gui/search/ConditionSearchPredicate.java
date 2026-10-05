@@ -13,8 +13,8 @@ import java.util.Map;
 import java.util.function.Predicate;
 
 final class ConditionSearchPredicate implements Predicate<ItemStack> {
-    private final String term;
     private static final Map<String, Component> cachedID = new HashMap<>();
+    private final String term;
 
     ConditionSearchPredicate(String term) {
         this.term = term.toLowerCase(Locale.ROOT);

@@ -24,6 +24,10 @@ final class TooltipsSearchPredicate implements Predicate<ItemStack> {
         this.tooltipCache = tooltipCache;
     }
 
+    private static String normalize(String input) {
+        return input.toLowerCase().replace(" ", "");
+    }
+
     @Override
     public boolean test(ItemStack stack) {
         AEKey key = getKey(stack);
@@ -75,9 +79,5 @@ final class TooltipsSearchPredicate implements Predicate<ItemStack> {
 
             return normalize(tooltipText.toString());
         });
-    }
-
-    private static String normalize(String input) {
-        return input.toLowerCase().replace(" ", "");
     }
 }

@@ -16,9 +16,9 @@ import appeng.core.sync.network.NetworkHandler;
 import appeng.core.sync.packets.InventoryActionPacket;
 import appeng.helpers.InventoryAction;
 import com.ber.nimblePattern.client.gui.panel.PatternLoopPanel;
+import com.ber.nimblePattern.client.gui.panel.PatternUpgradePanel;
 import com.ber.nimblePattern.client.gui.panel.TagModePanel;
 import com.ber.nimblePattern.client.gui.search.PatternSearch;
-import com.ber.nimblePattern.client.gui.panel.PatternUpgradePanel;
 import com.ber.nimblePattern.client.gui.widgets.PatternUpgradeSlot;
 import com.ber.nimblePattern.menu.PatternTagTermMenu;
 import com.ber.nimblePattern.parts.TagMode;
@@ -35,17 +35,12 @@ import java.util.*;
 
 import static com.ber.nimblePattern.menu.PatternTagTermMenu.VIRTUAL_ID;
 import static com.ber.nimblePattern.menu.PatternTagTermMenu.VIRTUAL_INV;
-import static com.ber.nimblePattern.menu.PatternTagTermMenu.INPUT_PATTERN;
-import static com.ber.nimblePattern.parts.PatternTagLogic.INPUT_PATTERN_COLUMNS;
-import static com.ber.nimblePattern.parts.PatternTagLogic.INPUT_PATTERN_TOTAL_ROWS;
-import static com.ber.nimblePattern.parts.PatternTagLogic.INPUT_PATTERN_VISIBLE_ROWS;
+import static com.ber.nimblePattern.menu.SlotSemantics.INPUT_PATTERN;
+import static com.ber.nimblePattern.parts.PatternTagLogic.*;
 
 public class PatternTagTermScreen<C extends PatternTagTermMenu> extends AEBaseScreen<C> {
     private static final int COLUMNS = 9;
     private static final int MIN_ROWS = 2;
-
-    private int rows = 0;
-
     private final TerminalStyle style;
     private final Scrollbar scrollbar;
     private final Scrollbar inputPatternScrollbar;
@@ -53,8 +48,8 @@ public class PatternTagTermScreen<C extends PatternTagTermMenu> extends AEBaseSc
     private final PatternSearch search = new PatternSearch();
     private final Map<TagMode, TagModePanel> modePanels = new EnumMap<>(TagMode.class);
     private final Map<TagMode, TabButton> modeTabButtons = new EnumMap<>(TagMode.class);
-
     private final Long2ObjectOpenHashMap<PatternContainerRecord> byId = new Long2ObjectOpenHashMap<>();
+    private int rows = 0;
     private List<PatternRecord> patterns = new ArrayList<>();
     private Set<String> conditions = new LinkedHashSet<String>();
 
@@ -89,15 +84,12 @@ public class PatternTagTermScreen<C extends PatternTagTermMenu> extends AEBaseSc
                 INPUT_PATTERN_VISIBLE_ROWS);
         this.inputPatternScrollbar.setCaptureMouseWheel(false);
 
-        for (var mode: TagMode.values()) {
+        for (var mode : TagMode.values()) {
             var panel = switch (mode) {
                 case UPGRADE -> new PatternUpgradePanel(this, widgets);
                 case LOOP -> new PatternLoopPanel(this, widgets);
             };
-            var tabButton = new TabButton(
-                    panel.getTabIconItem(),
-                    panel.getTabTooltip(),
-                    btn -> getMenu().setMode(mode));
+            var tabButton = panel.createTabButton(button -> getMenu().setMode(mode));
             tabButton.setStyle(TabButton.Style.HORIZONTAL);
             var modeIndex = modeTabButtons.size();
             widgets.add("modePanel" + modeIndex, panel);
@@ -206,7 +198,7 @@ public class PatternTagTermScreen<C extends PatternTagTermMenu> extends AEBaseSc
             slot.y -= inputPatternScrollbar.getCurrentScroll() * 18;
         }
 
-        for (var mode: TagMode.values()) {
+        for (var mode : TagMode.values()) {
             var selected = menu.getMode() == mode;
             modeTabButtons.get(mode).setSelected(selected);
             modePanels.get(mode).setVisible(selected);
@@ -247,9 +239,6 @@ public class PatternTagTermScreen<C extends PatternTagTermMenu> extends AEBaseSc
 
     public void postConditionUpdate(Set<String> conditions) {
         this.conditions = conditions;
-        if (modePanels.get(TagMode.UPGRADE) instanceof PatternUpgradePanel upgradePanel) {
-            upgradePanel.setHistory(conditions);
-        }
     }
 
     @Override
