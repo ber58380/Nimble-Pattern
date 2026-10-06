@@ -11,6 +11,8 @@ public class ModZhCnLangProvider extends LanguageProvider {
 
     @Override
     protected void addTranslations() {
+        add("itemGroup.nimble_pattern_tab", "灵巧样板");
+
         add("item.nimble_pattern.pattern_tag_terminal", "样板标记终端");
         add("gui.nimble_pattern.pattern_tag_terminal.search_tooltip_condition", "用 % 按更新条件搜索(%UHV)");
         add("gui.nimble_pattern.pattern_tag_terminal.search_tooltip_status", "用 ~ 按更新状态搜索(~UPGRADE)");
@@ -24,5 +26,11 @@ public class ModZhCnLangProvider extends LanguageProvider {
         add("tooltip.nimble_pattern.state.UPDATE", "更新状态：可更新");
         add("toast.nimble_pattern.pattern_upgrade_title", "样板可更新");
         add("toast.nimble_pattern.pattern_ugprade_content", "%s已获得，%d个相关样板可更新");
+
+        add("item.nimble_pattern.loop_storage_cell_1k", "1k 循环存储元件");
+        add("item.nimble_pattern.loop_storage_cell_4k", "4k 循环存储元件");
+        add("item.nimble_pattern.loop_storage_cell_16k", "16k 循环存储元件");
+        add("item.nimble_pattern.loop_storage_cell_64k", "64k 循环存储元件");
+        add("item.nimble_pattern.loop_storage_cell_256k", "256k 循环存储元件");
     }
 }

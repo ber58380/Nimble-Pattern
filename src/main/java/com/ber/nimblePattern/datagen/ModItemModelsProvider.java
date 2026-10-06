@@ -1,6 +1,7 @@
 package com.ber.nimblePattern.datagen;
 
 import com.ber.nimblePattern.NimblePattern;
+import com.ber.nimblePattern.item.ModItems;
 import net.minecraft.data.PackOutput;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
@@ -19,7 +20,11 @@ public class ModItemModelsProvider extends ItemModelProvider {
 
     @Override
     protected void registerModels() {
-
+        basicItem(ModItems.LOOP_STORAGE_CELL_1K.get());
+        basicItem(ModItems.LOOP_STORAGE_CELL_4K.get());
+        basicItem(ModItems.LOOP_STORAGE_CELL_16K.get());
+        basicItem(ModItems.LOOP_STORAGE_CELL_64K.get());
+        basicItem(ModItems.LOOP_STORAGE_CELL_256K.get());
     }
 
     @Override
