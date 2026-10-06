@@ -21,6 +21,10 @@ import java.util.List;
 public abstract class EncodedPatternItemMixin {
     @Inject(method = "appendHoverText", at = @At("TAIL"))
     private void addUpdateInfo(ItemStack stack, Level level, List<Component> lines, TooltipFlag advancedTooltips, CallbackInfo ci) {
+        if (NimblePatternTag.getFake(stack)) {
+            lines.add(Component.translatable("tooltip.nimble_pattern.fake_pattern").withStyle(ChatFormatting.AQUA));
+        }
+
         String condition = NimblePatternTag.getCondition(stack);
         if (condition.isEmpty()) {
             return;

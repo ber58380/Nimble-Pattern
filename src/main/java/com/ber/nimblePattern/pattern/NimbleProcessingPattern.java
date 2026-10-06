@@ -1,37 +1,23 @@
 package com.ber.nimblePattern.pattern;
 
-import appeng.api.crafting.IPatternDetails;
-import appeng.api.stacks.AEItemKey;
 import appeng.api.stacks.AEKey;
 import appeng.api.stacks.GenericStack;
 import appeng.crafting.pattern.AEProcessingPattern;
-import net.minecraft.world.item.BookItem;
 import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Arrays;
 
-public class NimbleProcessingPattern implements IPatternDetails {
-    private final AEProcessingPattern pattern;
-    private final IInput[] fuzzyInputs;
+public class NimbleProcessingPattern extends NimblePatternWrapper<AEProcessingPattern> {
+    private final IInput[] inputs;
     private final boolean fakeMode;
     private final boolean fuzzyMode;
 
     public NimbleProcessingPattern(AEProcessingPattern pattern, boolean fuzzyMode) {
-        this.pattern = pattern;
-        if (fuzzyMode) {
-            this.fuzzyInputs = Arrays.stream(pattern.getInputs())
-                    .map(FuzzyInput::new)
-                    .toArray(IInput[]::new);
-        } else {
-            this.fuzzyInputs = pattern.getInputs();
-        }
-        this.fakeMode = isFakePattern();
+        super(pattern);
+        this.fakeMode = NimblePatternTag.getFake(pattern.getDefinition().toStack());
         this.fuzzyMode = fuzzyMode;
-    }
-
-    public AEProcessingPattern getPattern() {
-        return pattern;
+        this.inputs = fuzzyMode ? Arrays.stream(pattern.getInputs()).map(FuzzyInput::new).toArray(IInput[]::new) : pattern.getInputs();
     }
 
     public boolean getFakeMode() {
@@ -42,49 +28,9 @@ public class NimbleProcessingPattern implements IPatternDetails {
         return fuzzyMode;
     }
 
-    private boolean isFakePattern() {
-        var outputs = pattern.getOutputs();
-        // If the output of pattern is only a renamed book, it's a fake pattern
-        if (outputs.length != 1) {
-            return false;
-        }
-        if (!(outputs[0].what() instanceof AEItemKey key)) {
-            return false;
-        }
-        var stack = key.toStack();
-        if (!stack.hasCustomHoverName()) {
-            return false;
-        }
-        var item = stack.getItem();
-        return item instanceof BookItem;
-    }
-
-    @Override
-    public AEItemKey getDefinition() {
-        return pattern.getDefinition();
-    }
-
     @Override
     public IInput[] getInputs() {
-        return fuzzyInputs;
-    }
-
-    @Override
-    public GenericStack[] getOutputs() {
-        return pattern.getOutputs();
-    }
-
-    @Override
-    public int hashCode() {
-        return pattern.hashCode();
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (obj instanceof NimbleProcessingPattern npp) {
-            return pattern.equals(npp.pattern);
-        }
-        return pattern.equals(obj);
+        return inputs;
     }
 
     private record FuzzyInput(IInput pattern) implements IInput {

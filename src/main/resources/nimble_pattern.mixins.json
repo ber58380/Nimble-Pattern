@@ -10,6 +10,7 @@
     "ae2.EncodedPatternItemMixin",
     "ae2.NetworkStorageAccessorMixin",
     "ae2.NetworkStorageMixin",
+    "ae2.PatternEncodingTermMenuMixin",
     "ae2.PatternProviderBlockEntityMixin",
     "ae2.PatternProviderLogicMixin",
     "ae2.PatternProviderMenuMixin",

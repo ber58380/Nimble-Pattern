@@ -26,8 +26,10 @@ public class NimblePatternTag {
     private static final String ROOT = NimblePattern.MOD_ID;
     // the source tag includes: dim, pos, side, slot
     private static final String SOURCE_TAG = "source";
-    // the update tag includes: condition, status
-    private static final String UPDATE_TAG = "update";
+    // the upgrade tag includes: condition, status
+    private static final String UPGRADE_TAG = "upgrade";
+    // the fake tag includes: isFake
+    private static final String FAKE_TAG = "fake";
 
     public static void tagSource(ItemStack pattern, ServerLevel level, BlockPos pos, Direction side, int slot) {
         var root = pattern.getOrCreateTagElement(ROOT);
@@ -45,14 +47,14 @@ public class NimblePatternTag {
             return;
         }
         root.remove(SOURCE_TAG);
-        if (root.contains(UPDATE_TAG, Tag.TAG_COMPOUND)) {
-            CompoundTag updateTag = root.getCompound(UPDATE_TAG);
+        if (root.contains(UPGRADE_TAG, Tag.TAG_COMPOUND)) {
+            CompoundTag upgradeTag = root.getCompound(UPGRADE_TAG);
             int status = -1;
-            if (updateTag.contains("status", Tag.TAG_BYTE)) {
-                status = updateTag.getByte("status");
+            if (upgradeTag.contains("status", Tag.TAG_BYTE)) {
+                status = upgradeTag.getByte("status");
             }
             if (status == UNTRACKED.ordinal()) {
-                root.remove(UPDATE_TAG);
+                root.remove(UPGRADE_TAG);
             }
         }
         if (root.isEmpty()) {
@@ -208,19 +210,19 @@ public class NimblePatternTag {
         if (root == null) {
             return "";
         }
-        if (root.contains(UPDATE_TAG, Tag.TAG_COMPOUND)) {
-            CompoundTag updateTag = root.getCompound(UPDATE_TAG);
-            return updateTag.getString("condition");
+        if (root.contains(UPGRADE_TAG, Tag.TAG_COMPOUND)) {
+            CompoundTag upgradeTag = root.getCompound(UPGRADE_TAG);
+            return upgradeTag.getString("condition");
         }
         return "";
     }
 
     public static void tagUpdate(ItemStack pattern, String condition) {
         CompoundTag root = pattern.getOrCreateTagElement(ROOT);
-        CompoundTag updateTag = new CompoundTag();
-        updateTag.putString("condition", condition);
-        updateTag.putByte("status", (byte) LATEST.ordinal());
-        root.put(UPDATE_TAG, updateTag);
+        CompoundTag upgradeTag = new CompoundTag();
+        upgradeTag.putString("condition", condition);
+        upgradeTag.putByte("status", (byte) LATEST.ordinal());
+        root.put(UPGRADE_TAG, upgradeTag);
     }
 
     public static void tagStatus(ItemStack pattern) {
@@ -228,10 +230,10 @@ public class NimblePatternTag {
         if (root == null) {
             return;
         }
-        if (root.contains(UPDATE_TAG, Tag.TAG_COMPOUND)) {
-            CompoundTag updateTag = root.getCompound(UPDATE_TAG);
-            updateTag.putByte("status", (byte) UPDATE.ordinal());
-            root.put(UPDATE_TAG, updateTag);
+        if (root.contains(UPGRADE_TAG, Tag.TAG_COMPOUND)) {
+            CompoundTag upgradeTag = root.getCompound(UPGRADE_TAG);
+            upgradeTag.putByte("status", (byte) UPDATE.ordinal());
+            root.put(UPGRADE_TAG, upgradeTag);
         }
     }
 
@@ -240,9 +242,9 @@ public class NimblePatternTag {
         if (root == null) {
             return UpdateState.UNTRACKED;
         }
-        if (root.contains(UPDATE_TAG, Tag.TAG_COMPOUND)) {
-            CompoundTag updateTag = root.getCompound(UPDATE_TAG);
-            byte status = updateTag.getByte("status");
+        if (root.contains(UPGRADE_TAG, Tag.TAG_COMPOUND)) {
+            CompoundTag upgradeTag = root.getCompound(UPGRADE_TAG);
+            byte status = upgradeTag.getByte("status");
             var values = UpdateState.values();
             return status >= 0 && status < values.length ? values[status] : UpdateState.UNTRACKED;
         }
@@ -254,10 +256,29 @@ public class NimblePatternTag {
         if (root == null) {
             return;
         }
-        root.remove(UPDATE_TAG);
+        root.remove(UPGRADE_TAG);
         if (root.isEmpty()) {
             pattern.removeTagKey(ROOT);
         }
+    }
+
+    public static void tagFake(ItemStack pattern) {
+        CompoundTag root = pattern.getOrCreateTagElement(ROOT);
+        CompoundTag fakeTag = new CompoundTag();
+        fakeTag.putBoolean("isFake", true);
+        root.put(FAKE_TAG, fakeTag);
+    }
+
+    public static boolean getFake(ItemStack pattern) {
+        CompoundTag root = pattern.getTagElement(ROOT);
+        if (root == null) {
+            return false;
+        }
+        if (root.contains(FAKE_TAG, Tag.TAG_COMPOUND)) {
+            CompoundTag fakeTag = root.getCompound(FAKE_TAG);
+            return fakeTag.getBoolean("isFake");
+        }
+        return false;
     }
 
 }

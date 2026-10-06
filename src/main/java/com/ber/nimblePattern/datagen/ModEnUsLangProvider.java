@@ -12,7 +12,7 @@ public class ModEnUsLangProvider extends LanguageProvider {
     @Override
     protected void addTranslations() {
         add("itemGroup.nimble_pattern_tab", "Nimble Pattern");
-        
+
         add("item.nimble_pattern.pattern_tag_terminal", "Pattern Tag Terminal");
         add("gui.nimble_pattern.pattern_tag_terminal.search_tooltip_condition", "Use % to search by conditions (%UHV)");
         add("gui.nimble_pattern.pattern_tag_terminal.search_tooltip_status", "Use ~ to search by status (~UPGRADE)");
@@ -20,6 +20,8 @@ public class ModEnUsLangProvider extends LanguageProvider {
         add("gui.nimble_pattern.pattern_tag_terminal.apply", "Apply");
         add("gui.nimble_pattern.pattern_tag_terminal.tab.upgrade", "Upgrade Patterns");
         add("gui.nimble_pattern.pattern_tag_terminal.tab.loop", "Loop Patterns");
+
+        add("tooltip.nimble_pattern.fake_pattern", "Fake Pattern");
         add("tooltip.nimble_pattern.condition", "Upgrade condition: %s");
         add("tooltip.nimble_pattern.state.UNTRACKED", "Upgrade state: Untracked");
         add("tooltip.nimble_pattern.state.LATEST", "Upgrade state: Latest");

@@ -20,6 +20,8 @@ public class ModZhCnLangProvider extends LanguageProvider {
         add("gui.nimble_pattern.pattern_tag_terminal.apply", "应用");
         add("gui.nimble_pattern.pattern_tag_terminal.tab.upgrade", "更新样板");
         add("gui.nimble_pattern.pattern_tag_terminal.tab.loop", "循环样板");
+
+        add("tooltip.nimble_pattern.fake_pattern", "假样板");
         add("tooltip.nimble_pattern.condition", "更新条件：%s");
         add("tooltip.nimble_pattern.state.UNTRACKED", "更新状态：未追踪");
         add("tooltip.nimble_pattern.state.LATEST", "更新状态：最新");

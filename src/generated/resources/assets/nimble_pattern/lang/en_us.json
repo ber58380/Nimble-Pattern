@@ -15,6 +15,7 @@
   "toast.nimble_pattern.pattern_ugprade_content": "%s obtained, %d related patterns are available for upgrade",
   "toast.nimble_pattern.pattern_upgrade_title": "Upgrade of patterns are available",
   "tooltip.nimble_pattern.condition": "Upgrade condition: %s",
+  "tooltip.nimble_pattern.fake_pattern": "Fake Pattern",
   "tooltip.nimble_pattern.state.LATEST": "Upgrade state: Latest",
   "tooltip.nimble_pattern.state.UNTRACKED": "Upgrade state: Untracked",
   "tooltip.nimble_pattern.state.UPDATE": "Upgrade state: Upgrade available"
