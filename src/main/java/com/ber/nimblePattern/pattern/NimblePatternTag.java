@@ -17,6 +17,7 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraftforge.registries.ForgeRegistries;
 
 import java.util.List;
 
@@ -177,9 +178,9 @@ public class NimblePatternTag {
         tagPattern(pattern, SOURCE_TAG, sourceTag);
     }
 
-    public static void tagUpgrade(ItemStack pattern, String condition) {
+    public static void tagUpgrade(ItemStack pattern, ResourceLocation condition) {
         CompoundTag upgradeTag = new CompoundTag();
-        upgradeTag.putString("condition", condition);
+        upgradeTag.putString("condition", condition.toString());
         upgradeTag.putByte("status", (byte) LATEST.ordinal());
         tagPattern(pattern, UPGRADE_TAG, upgradeTag);
     }
@@ -244,16 +245,21 @@ public class NimblePatternTag {
         return null;
     }
 
-    public static String getCondition(ItemStack pattern) {
+    public static ResourceLocation getCondition(ItemStack pattern) {
         CompoundTag root = pattern.getTagElement(ROOT);
-        if (root == null) {
-            return "";
+        if (root == null || !root.contains(UPGRADE_TAG, Tag.TAG_COMPOUND)) {
+            return null;
         }
-        if (root.contains(UPGRADE_TAG, Tag.TAG_COMPOUND)) {
-            CompoundTag upgradeTag = root.getCompound(UPGRADE_TAG);
-            return upgradeTag.getString("condition");
+        CompoundTag upgradeTag = root.getCompound(UPGRADE_TAG);
+        String value = upgradeTag.getString("condition");
+        if (value.isBlank()) {
+            return null;
         }
-        return "";
+        ResourceLocation condition = ResourceLocation.tryParse(value);
+        if (condition == null) {
+            return null;
+        }
+        return ForgeRegistries.ITEMS.containsKey(condition) || ForgeRegistries.FLUIDS.containsKey(condition) ? condition : null;
     }
 
     public static UpgradeState getStatus(ItemStack pattern) {

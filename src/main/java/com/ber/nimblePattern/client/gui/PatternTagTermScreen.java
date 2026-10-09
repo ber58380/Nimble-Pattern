@@ -51,7 +51,6 @@ public class PatternTagTermScreen<C extends PatternTagTermMenu> extends AEBaseSc
     private final Long2ObjectOpenHashMap<PatternContainerRecord> byId = new Long2ObjectOpenHashMap<>();
     private int rows = 0;
     private List<PatternRecord> patterns = new ArrayList<>();
-    private Set<String> conditions = new LinkedHashSet<String>();
 
     // ClearPacket starts a full synchronization batch. Full PatternPackets only
     // populate byId; PatternSyncCompletePacket rebuilds the expensive global view once.
@@ -235,10 +234,6 @@ public class PatternTagTermScreen<C extends PatternTagTermMenu> extends AEBaseSc
                 rebuildPatternView();
             }
         }
-    }
-
-    public void postConditionUpdate(Set<String> conditions) {
-        this.conditions = conditions;
     }
 
     @Override

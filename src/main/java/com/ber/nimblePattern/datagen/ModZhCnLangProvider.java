@@ -25,7 +25,7 @@ public class ModZhCnLangProvider extends LanguageProvider {
         add("tooltip.nimble_pattern.condition", "更新条件：%s");
         add("tooltip.nimble_pattern.state.UNTRACKED", "更新状态：未追踪");
         add("tooltip.nimble_pattern.state.LATEST", "更新状态：最新");
-        add("tooltip.nimble_pattern.state.UPDATE", "更新状态：可更新");
+        add("tooltip.nimble_pattern.state.UPGRADE", "更新状态：可更新");
         add("toast.nimble_pattern.pattern_upgrade_title", "样板可更新");
         add("toast.nimble_pattern.pattern_ugprade_content", "%s已获得，%d个相关样板可更新");
 

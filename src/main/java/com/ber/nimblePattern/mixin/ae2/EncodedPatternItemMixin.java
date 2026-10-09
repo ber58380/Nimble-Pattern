@@ -25,20 +25,17 @@ public abstract class EncodedPatternItemMixin {
             lines.add(Component.translatable("tooltip.nimble_pattern.fake_pattern").withStyle(ChatFormatting.AQUA));
         }
 
-        String condition = NimblePatternTag.getCondition(stack);
-        if (condition.isEmpty()) {
+        ResourceLocation condition = NimblePatternTag.getCondition(stack);
+        if (condition == null) {
             return;
         }
         Component name = null;
-        ResourceLocation id = ResourceLocation.tryParse(condition);
-        if (id != null && ForgeRegistries.ITEMS.containsKey(id)) {
-            name = ForgeRegistries.ITEMS.getValue(id).getDescription().copy();
-        } else if (id != null && ForgeRegistries.BLOCKS.containsKey(id)) {
-            name = ForgeRegistries.BLOCKS.getValue(id).getName().copy();
-        } else if (id != null && ForgeRegistries.FLUIDS.containsKey(id)) {
-            name = ForgeRegistries.FLUIDS.getValue(id).getFluidType().getDescription().copy();
+        if (ForgeRegistries.ITEMS.containsKey(condition)) {
+            name = ForgeRegistries.ITEMS.getValue(condition).getDescription().copy();
+        } else if (ForgeRegistries.FLUIDS.containsKey(condition)) {
+            name = ForgeRegistries.FLUIDS.getValue(condition).getFluidType().getDescription().copy();
         }
-        Component conditionLine = Component.translatable("tooltip.nimble_pattern.condition", name != null ? name : Component.literal(condition)).withStyle(ChatFormatting.GRAY);
+        Component conditionLine = Component.translatable("tooltip.nimble_pattern.condition", name != null ? name : Component.literal(condition.toString())).withStyle(ChatFormatting.GRAY);
         lines.add(conditionLine);
 
         UpgradeState state = NimblePatternTag.getStatus(stack);

@@ -42,7 +42,7 @@ public class PatternUpgradePanel extends TagModePanel {
         widgets.add("conditionTextField", this.conditionTextField);
         this.upgradeClearButton = new NimbleButton(0, 0, 0, 0, Component.translatable("gui.nimble_pattern.pattern_tag_terminal.clear"), button -> clearUpgradeCondition());
         widgets.add("upgradeClearButton", this.upgradeClearButton);
-        this.upgradeApplyButton = new NimbleButton(0, 0, 0, 0, Component.translatable("gui.nimble_pattern.pattern_tag_terminal.apply"), button -> applyUpgradeCondition());
+        this.upgradeApplyButton = new NimbleButton(0, 0, 0, 0, Component.translatable("gui.nimble_pattern.pattern_tag_terminal.apply"), button -> menu.applyUpgradeCondition());
         widgets.add("upgradeApplyButton", this.upgradeApplyButton);
     }
 
@@ -82,16 +82,7 @@ public class PatternUpgradePanel extends TagModePanel {
         upgradeApplyButton.visible = visible;
         screen.setSlotsHidden(UPGRADE_CONDITION, !visible);
     }
-
-    private void applyUpgradeCondition() {
-        var stack = menu.getConditionItemSlot().getItem();
-        var generic = GenericStack.fromItemStack(stack);
-        if (generic == null) {
-            return;
-        }
-        menu.applyUpgradeCondition(generic.what().getId().toString());
-    }
-
+    
     private void clearUpgradeCondition() {
         conditionTextField.setValue("");
         menu.getConditionItemSlot().set(ItemStack.EMPTY);

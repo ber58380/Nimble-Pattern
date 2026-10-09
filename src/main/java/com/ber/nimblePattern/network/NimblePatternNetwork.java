@@ -18,8 +18,7 @@ public class NimblePatternNetwork {
     public static void init() {
         CHANNEL.registerMessage(0, ClearPacket.class, ClearPacket::encode, ClearPacket::decode, ClearPacket::handle);
         CHANNEL.registerMessage(1, PatternPacket.class, PatternPacket::encode, PatternPacket::decode, PatternPacket::handle);
-        CHANNEL.registerMessage(2, ConditionPacket.class, ConditionPacket::encode, ConditionPacket::decode, ConditionPacket::handle);
-        CHANNEL.registerMessage(3, PatternUpgradeNotificationPacket.class, PatternUpgradeNotificationPacket::encode, PatternUpgradeNotificationPacket::decode, PatternUpgradeNotificationPacket::handle);
-        CHANNEL.registerMessage(4, PatternSyncCompletePacket.class, PatternSyncCompletePacket::encode, PatternSyncCompletePacket::decode, PatternSyncCompletePacket::handle);
+        CHANNEL.registerMessage(2, PatternUpgradeNotificationPacket.class, PatternUpgradeNotificationPacket::encode, PatternUpgradeNotificationPacket::decode, PatternUpgradeNotificationPacket::handle);
+        CHANNEL.registerMessage(3, PatternSyncCompletePacket.class, PatternSyncCompletePacket::encode, PatternSyncCompletePacket::decode, PatternSyncCompletePacket::handle);
     }
 }

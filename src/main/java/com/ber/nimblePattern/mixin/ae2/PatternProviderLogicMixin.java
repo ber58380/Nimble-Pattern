@@ -134,7 +134,6 @@ public class PatternProviderLogicMixin implements IUpgradeableObject {
                 definition = AEItemKey.of(stack);
                 wrapped.add(new NimbleAssemblerPattern(asp, definition));
             } else {
-                // Normally there should not have this case, but for safe
                 wrapped.add(pattern);
             }
         }

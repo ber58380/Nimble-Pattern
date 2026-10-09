@@ -18,5 +18,5 @@
   "tooltip.nimble_pattern.fake_pattern": "假样板",
   "tooltip.nimble_pattern.state.LATEST": "更新状态：最新",
   "tooltip.nimble_pattern.state.UNTRACKED": "更新状态：未追踪",
-  "tooltip.nimble_pattern.state.UPDATE": "更新状态：可更新"
+  "tooltip.nimble_pattern.state.UPGRADE": "更新状态：可更新"
 }

@@ -57,7 +57,7 @@ public class PatternPacket {
 
     public static void handle(PatternPacket msg, Supplier<NetworkEvent.Context> ctx) {
         ctx.get().enqueueWork(() -> {
-            if (Minecraft.getInstance().screen instanceof PatternTagTermScreen screen) {
+            if (Minecraft.getInstance().screen instanceof PatternTagTermScreen<?> screen) {
                 if (msg.fullUpdate) {
                     screen.postFullUpdate(msg.inventoryId, msg.inventorySize, msg.slots);
                 } else {

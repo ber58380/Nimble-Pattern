@@ -25,7 +25,7 @@ public class ModEnUsLangProvider extends LanguageProvider {
         add("tooltip.nimble_pattern.condition", "Upgrade condition: %s");
         add("tooltip.nimble_pattern.state.UNTRACKED", "Upgrade state: Untracked");
         add("tooltip.nimble_pattern.state.LATEST", "Upgrade state: Latest");
-        add("tooltip.nimble_pattern.state.UPDATE", "Upgrade state: Upgrade available");
+        add("tooltip.nimble_pattern.state.UPGRADE", "Upgrade state: Upgrade available");
         add("toast.nimble_pattern.pattern_upgrade_title", "Upgrade of patterns are available");
         add("toast.nimble_pattern.pattern_ugprade_content", "%s obtained, %d related patterns are available for upgrade");
 

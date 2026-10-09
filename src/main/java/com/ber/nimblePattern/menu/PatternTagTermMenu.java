@@ -5,6 +5,9 @@ import appeng.api.inventories.InternalInventory;
 import appeng.api.networking.IGrid;
 import appeng.api.networking.IGridNode;
 import appeng.api.networking.security.IActionHost;
+import appeng.api.stacks.AEFluidKey;
+import appeng.api.stacks.AEItemKey;
+import appeng.api.stacks.GenericStack;
 import appeng.helpers.InventoryAction;
 import appeng.helpers.patternprovider.PatternContainer;
 import appeng.helpers.patternprovider.PatternProviderLogicHost;
@@ -22,11 +25,14 @@ import appeng.util.inv.AppEngInternalInventory;
 import com.ber.nimblePattern.compat.extendedae.ExtendedAECompat;
 import com.ber.nimblePattern.helpers.IPatternTagMenuHost;
 import com.ber.nimblePattern.menu.slot.LoopStorageCellSlot;
-import com.ber.nimblePattern.network.*;
+import com.ber.nimblePattern.network.ClearPacket;
+import com.ber.nimblePattern.network.NimblePatternNetwork;
+import com.ber.nimblePattern.network.PatternPacket;
+import com.ber.nimblePattern.network.PatternSyncCompletePacket;
 import com.ber.nimblePattern.parts.PatternTagLogic;
 import com.ber.nimblePattern.parts.TagMode;
 import com.ber.nimblePattern.pattern.NimblePatternTag;
-import com.ber.nimblePattern.pattern.PatternUpgradeTracker;
+import com.ber.nimblePattern.pattern.PatternInventorySnapshots;
 import it.unimi.dsi.fastutil.ints.Int2ObjectArrayMap;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
@@ -44,8 +50,8 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraftforge.network.PacketDistributor;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.IdentityHashMap;
+import java.util.Map;
 
 import static appeng.helpers.InventoryAction.PICKUP_OR_SET_DOWN;
 import static appeng.helpers.InventoryAction.SPLIT_OR_PLACE_SINGLE;
@@ -75,13 +81,10 @@ public class PatternTagTermMenu extends AEBaseMenu {
     private final FakeSlot loopInputSlot;
     private final FakeSlot loopOutputSlot;
     private final LoopStorageCellSlot loopStorageCellSlot;
-    // Number of patterns currently using each non-empty upgrade condition.
-    // Incremental updates only need to touch conditions of changed slots.
-    private final Map<String, Integer> conditionRefCounts = new HashMap<>();
 
     @GuiSync(97)
     public TagMode mode;
-    private Set<String> conditionsHistory = new LinkedHashSet<>();
+    private long lastNetworkCheck = Long.MIN_VALUE;
 
     public PatternTagTermMenu(int id, Inventory ip, IPatternTagMenuHost host) {
         this(TYPE, id, ip, host, true);
@@ -118,17 +121,9 @@ public class PatternTagTermMenu extends AEBaseMenu {
             this.createPlayerInventorySlots(ip);
         }
         registerClientAction("setMode", TagMode.class, this::setMode);
-        registerClientAction("applyCondition", String.class, this::applyUpgradeCondition);
+        registerClientAction("applyCondition", this::applyUpgradeCondition);
         registerClientAction("clearCondition", this::clearUpgradeCondition);
         registerClientAction("applyLoop", this::applyLoop);
-    }
-
-    private static String getCondition(ItemStack pattern) {
-        if (pattern.isEmpty()) {
-            return "";
-        }
-        var condition = NimblePatternTag.getCondition(pattern);
-        return condition == null ? "" : condition;
     }
 
     public RestrictedInputSlot[] getInputPatternSlots() {
@@ -244,6 +239,12 @@ public class PatternTagTermMenu extends AEBaseMenu {
             this.mode = tagLogic.getMode();
         }
         super.broadcastChanges();
+        long now = getPlayer().level().getGameTime();
+        if (lastNetworkCheck != Long.MIN_VALUE && now - lastNetworkCheck < 5) {
+            return;
+        }
+        lastNetworkCheck = now;
+
         IGrid grid = getGrid();
         var state = new PatternTagTermMenu.VisitorState();
         if (grid != null) {
@@ -282,53 +283,20 @@ public class PatternTagTermMenu extends AEBaseMenu {
         }
     }
 
-    private void addCondition(ItemStack pattern) {
-        var condition = getCondition(pattern);
-        if (!condition.isBlank()) {
-            conditionRefCounts.merge(condition, 1, Integer::sum);
-        }
-    }
-
-    private void removeCondition(ItemStack pattern) {
-        var condition = getCondition(pattern);
-        if (condition.isBlank()) {
-            return;
-        }
-        conditionRefCounts.computeIfPresent(condition, (key, count) -> count <= 1 ? null : count - 1);
-    }
-
-    private void updateCondition(ItemStack oldPattern, ItemStack newPattern) {
-        var oldCondition = getCondition(oldPattern);
-        var newCondition = getCondition(newPattern);
-        if (oldCondition.equals(newCondition)) {
-            return;
-        }
-        removeCondition(oldPattern);
-        addCondition(newPattern);
-    }
-
-    private void syncConditionsIfChanged() {
-        Set<String> conditions = conditionRefCounts.keySet().stream()
-                .sorted(String::compareToIgnoreCase)
-                .collect(Collectors.toCollection(LinkedHashSet::new));
-        if (conditions.equals(this.conditionsHistory)) {
-            return;
-        }
-
-        this.conditionsHistory = conditions;
-        if (getPlayer() instanceof ServerPlayer serverPlayer) {
-            NimblePatternNetwork.CHANNEL.send(
-                    PacketDistributor.PLAYER.with(() -> serverPlayer),
-                    new ConditionPacket(conditionsHistory));
-            PatternUpgradeTracker.instance().updateTracked(conditionsHistory);
-        }
-    }
-
-    public void applyUpgradeCondition(String condition) {
+    public void applyUpgradeCondition() {
         if (isClientSide()) {
-            sendClientAction("applyCondition", condition);
+            sendClientAction("applyCondition");
             return;
         }
+        var stack = GenericStack.fromItemStack(getConditionItemSlot().getItem());
+        if (stack == null) {
+            return;
+        }
+        var key = stack.what();
+        if (!(key instanceof AEItemKey) && !(key instanceof AEFluidKey)) {
+            return;
+        }
+        var condition = key.getId();
         for (int i = 0; i < inputPatternInv.size(); i++) {
             var pattern = inputPatternInv.getStackInSlot(i).copy();
             if (pattern.isEmpty()) {
@@ -371,18 +339,12 @@ public class PatternTagTermMenu extends AEBaseMenu {
     private void sendFullUpdate(@Nullable IGrid grid) {
         this.byId.clear();
         this.diList.clear();
-        this.conditionRefCounts.clear();
 
         if (getPlayer() instanceof ServerPlayer serverPlayer) {
             NimblePatternNetwork.CHANNEL.send(PacketDistributor.PLAYER.with(() -> serverPlayer), new ClearPacket());
         }
 
         if (grid == null) {
-            if (getPlayer() instanceof ServerPlayer serverPlayer) {
-                NimblePatternNetwork.CHANNEL.send(PacketDistributor.PLAYER.with(() -> serverPlayer), new ConditionPacket(Set.of()));
-            }
-            this.conditionsHistory = new LinkedHashSet<>();
-            PatternUpgradeTracker.instance().updateTracked(Set.of());
             return;
         }
 
@@ -399,7 +361,7 @@ public class PatternTagTermMenu extends AEBaseMenu {
 
         for (var inv : this.diList.values()) {
             this.byId.put(inv.serverId, inv);
-            var packet = inv.createFullPacket(this::addCondition);
+            var packet = inv.createFullPacket();
             if (getPlayer() instanceof ServerPlayer serverPlayer) {
                 NimblePatternNetwork.CHANNEL.send(PacketDistributor.PLAYER.with(() -> serverPlayer), packet);
             }
@@ -411,18 +373,15 @@ public class PatternTagTermMenu extends AEBaseMenu {
                     PacketDistributor.PLAYER.with(() -> serverPlayer),
                     new PatternSyncCompletePacket());
         }
-
-        syncConditionsIfChanged();
     }
 
     private void sendIncrementalUpdate() {
         for (var inv : this.diList.values()) {
-            var packet = inv.createUpdatePacket(this::updateCondition);
+            var packet = inv.createUpdatePacket();
             if (packet != null && getPlayer() instanceof ServerPlayer serverPlayer) {
                 NimblePatternNetwork.CHANNEL.send(PacketDistributor.PLAYER.with(() -> serverPlayer), packet);
             }
         }
-        syncConditionsIfChanged();
     }
 
     @Override
@@ -569,6 +528,7 @@ public class PatternTagTermMenu extends AEBaseMenu {
         private final InternalInventory client;
         // This is a reference to the real inventory used by this machine
         private final InternalInventory server;
+        private long lastRevision = -1;
 
         public ContainerTracker(PatternContainer container, InternalInventory patterns) {
             this.container = container;
@@ -588,21 +548,26 @@ public class PatternTagTermMenu extends AEBaseMenu {
             return !ItemStack.matches(a, b);
         }
 
-        public PatternPacket createFullPacket(FullSlotConsumer conditionConsumer) {
+        public PatternPacket createFullPacket() {
             var slots = new Int2ObjectArrayMap<ItemStack>(server.size());
             for (int i = 0; i < server.size(); i++) {
                 var stack = server.getStackInSlot(i);
                 client.setItemDirect(i, stack.isEmpty() ? ItemStack.EMPTY : stack.copy());
                 if (!stack.isEmpty()) {
                     slots.put(i, stack);
-                    conditionConsumer.accept(stack);
                 }
             }
             return PatternPacket.fullUpdate(serverId, server.size(), slots);
         }
 
         @Nullable
-        public PatternPacket createUpdatePacket(ChangedSlotConsumer conditionConsumer) {
+        public PatternPacket createUpdatePacket() {
+            long revision = PatternInventorySnapshots.getSnapshot(server, false).getRevision();
+            if (revision == lastRevision) {
+                return null;
+            }
+            lastRevision = revision;
+
             var changedSlots = detectChangedSlots();
             if (changedSlots == null) {
                 return null;
@@ -612,9 +577,6 @@ public class PatternTagTermMenu extends AEBaseMenu {
             for (int i = 0; i < changedSlots.size(); i++) {
                 var slot = changedSlots.getInt(i);
                 var stack = server.getStackInSlot(slot);
-                var oldStack = client.getStackInSlot(slot);
-                // Only changed slots need condition bookkeeping.
-                conditionConsumer.accept(oldStack, stack);
                 // "update" client side.
                 client.setItemDirect(slot, stack.isEmpty() ? ItemStack.EMPTY : stack.copy());
                 slots.put(slot, stack);
@@ -635,16 +597,6 @@ public class PatternTagTermMenu extends AEBaseMenu {
                 }
             }
             return changedSlots;
-        }
-
-        @FunctionalInterface
-        private interface FullSlotConsumer {
-            void accept(ItemStack pattern);
-        }
-
-        @FunctionalInterface
-        private interface ChangedSlotConsumer {
-            void accept(ItemStack oldPattern, ItemStack newPattern);
         }
     }
 

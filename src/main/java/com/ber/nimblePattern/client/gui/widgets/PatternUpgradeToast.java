@@ -7,6 +7,7 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.toasts.Toast;
 import net.minecraft.client.gui.components.toasts.ToastComponent;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.FormattedCharSequence;
 
 import java.util.List;
@@ -20,12 +21,12 @@ public class PatternUpgradeToast implements Toast {
     private final List<FormattedCharSequence> lines;
     private final int height;
 
-    public PatternUpgradeToast(String condition, int count, AEKey what) {
+    public PatternUpgradeToast(ResourceLocation condition, int count, AEKey what) {
         this.what = what;
 
         var minecraft = Minecraft.getInstance();
         var font = minecraft.font;
-        Component name = what != null ? AEKeyRendering.getDisplayName(what) : Component.literal(condition);
+        Component name = what != null ? AEKeyRendering.getDisplayName(what) : Component.literal(condition.toString());
         var text = Component.translatable("toast.nimble_pattern.pattern_ugprade_content", name, count);
         lines = font.split(text, width() - 30 - 5);
         height = Toast.super.height() + (lines.size() - 1) * font.lineHeight;

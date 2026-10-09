@@ -18,5 +18,5 @@
   "tooltip.nimble_pattern.fake_pattern": "Fake Pattern",
   "tooltip.nimble_pattern.state.LATEST": "Upgrade state: Latest",
   "tooltip.nimble_pattern.state.UNTRACKED": "Upgrade state: Untracked",
-  "tooltip.nimble_pattern.state.UPDATE": "Upgrade state: Upgrade available"
+  "tooltip.nimble_pattern.state.UPGRADE": "Upgrade state: Upgrade available"
 }
