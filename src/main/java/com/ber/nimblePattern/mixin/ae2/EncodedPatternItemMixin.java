@@ -2,7 +2,7 @@ package com.ber.nimblePattern.mixin.ae2;
 
 import appeng.crafting.pattern.EncodedPatternItem;
 import com.ber.nimblePattern.pattern.NimblePatternTag;
-import com.ber.nimblePattern.pattern.UpdateState;
+import com.ber.nimblePattern.pattern.UpgradeState;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -41,7 +41,7 @@ public abstract class EncodedPatternItemMixin {
         Component conditionLine = Component.translatable("tooltip.nimble_pattern.condition", name != null ? name : Component.literal(condition)).withStyle(ChatFormatting.GRAY);
         lines.add(conditionLine);
 
-        UpdateState state = NimblePatternTag.getStatus(stack);
+        UpgradeState state = NimblePatternTag.getStatus(stack);
         Component stateLine = Component.translatable("tooltip.nimble_pattern.state." + state.name()).withStyle(ChatFormatting.GRAY);
         lines.add(stateLine);
     }

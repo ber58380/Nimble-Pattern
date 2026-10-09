@@ -1,5 +1,6 @@
 package com.ber.nimblePattern.pattern;
 
+import appeng.api.stacks.AEItemKey;
 import appeng.api.stacks.AEKey;
 import appeng.api.stacks.GenericStack;
 import appeng.crafting.pattern.AEProcessingPattern;
@@ -13,10 +14,11 @@ public class NimbleProcessingPattern extends NimblePatternWrapper<AEProcessingPa
     private final boolean fakeMode;
     private final boolean fuzzyMode;
 
-    public NimbleProcessingPattern(AEProcessingPattern pattern, boolean fuzzyMode) {
-        super(pattern);
-        this.fakeMode = NimblePatternTag.getFake(pattern.getDefinition().toStack());
-        this.fuzzyMode = fuzzyMode;
+    public NimbleProcessingPattern(AEProcessingPattern pattern, AEItemKey definition) {
+        super(pattern, definition);
+        var stack = definition.toStack();
+        this.fakeMode = NimblePatternTag.getFake(stack);
+        this.fuzzyMode = NimblePatternTag.getFuzzy(stack);
         this.inputs = fuzzyMode ? Arrays.stream(pattern.getInputs()).map(FuzzyInput::new).toArray(IInput[]::new) : pattern.getInputs();
     }
 

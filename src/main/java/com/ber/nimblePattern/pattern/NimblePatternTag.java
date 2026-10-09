@@ -20,7 +20,7 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 
 import java.util.List;
 
-import static com.ber.nimblePattern.pattern.UpdateState.*;
+import static com.ber.nimblePattern.pattern.UpgradeState.*;
 
 public class NimblePatternTag {
     private static final String ROOT = NimblePattern.MOD_ID;
@@ -30,16 +30,8 @@ public class NimblePatternTag {
     private static final String UPGRADE_TAG = "upgrade";
     // the fake tag includes: isFake
     private static final String FAKE_TAG = "fake";
-
-    public static void tagSource(ItemStack pattern, ServerLevel level, BlockPos pos, Direction side, int slot) {
-        var root = pattern.getOrCreateTagElement(ROOT);
-        var tag = new CompoundTag();
-        tag.putString("dim", level.dimension().location().toString());
-        tag.putLong("pos", pos.asLong());
-        tag.putByte("side", (byte) (side == null ? 6 : side.ordinal()));
-        tag.putInt("slot", slot);
-        root.put(SOURCE_TAG, tag);
-    }
+    // the fuzzy tag includes: isFuzzy
+    private static final String FUZZY_TAG = "fuzzy";
 
     public static void removeTag(ItemStack pattern) {
         CompoundTag root = pattern.getTagElement(ROOT);
@@ -60,41 +52,6 @@ public class NimblePatternTag {
         if (root.isEmpty()) {
             pattern.removeTagKey(ROOT);
         }
-    }
-
-    private static NimblePatternSource getSource(ItemStack pattern, MinecraftServer server) {
-        CompoundTag root = pattern.getTagElement(ROOT);
-        if (root == null) {
-            return null;
-        }
-        if (root.contains(SOURCE_TAG, Tag.TAG_COMPOUND)) {
-            try {
-                CompoundTag sourceTag = root.getCompound(SOURCE_TAG);
-                ResourceLocation dim = ResourceLocation.tryParse(sourceTag.getString("dim"));
-                if (dim == null) {
-                    return null;
-                }
-                BlockPos pos = BlockPos.of(sourceTag.getLong("pos"));
-                int sideNum = sourceTag.getByte("side");
-                Direction side = sideNum == 6 ? null : Direction.from3DDataValue(sideNum);
-                int slot = sourceTag.getInt("slot");
-
-                // find the source pattern provider based on source info
-                var dimKey = ResourceKey.create(Registries.DIMENSION, dim);
-                ServerLevel level = server.getLevel(dimKey);
-                if (level == null || !level.hasChunkAt(pos)) {
-                    return null;
-                }
-                InternalInventory inv = getTerminalPatternInventory(level.getBlockEntity(pos), side);
-                if (inv == null) {
-                    return null;
-                }
-                return new NimblePatternSource(level, pos, side, slot, inv);
-            } catch (Exception e) {
-                return null;
-            }
-        }
-        return null;
     }
 
     private static InternalInventory getTerminalPatternInventory(BlockEntity block, Direction side) {
@@ -205,6 +162,88 @@ public class NimblePatternTag {
         return true;
     }
 
+    // region tag functions
+    private static void tagPattern(ItemStack pattern, String key, CompoundTag value) {
+        CompoundTag root = pattern.getOrCreateTagElement(ROOT);
+        root.put(key, value);
+    }
+
+    public static void tagSource(ItemStack pattern, ServerLevel level, BlockPos pos, Direction side, int slot) {
+        var sourceTag = new CompoundTag();
+        sourceTag.putString("dim", level.dimension().location().toString());
+        sourceTag.putLong("pos", pos.asLong());
+        sourceTag.putByte("side", (byte) (side == null ? 6 : side.ordinal()));
+        sourceTag.putInt("slot", slot);
+        tagPattern(pattern, SOURCE_TAG, sourceTag);
+    }
+
+    public static void tagUpgrade(ItemStack pattern, String condition) {
+        CompoundTag upgradeTag = new CompoundTag();
+        upgradeTag.putString("condition", condition);
+        upgradeTag.putByte("status", (byte) LATEST.ordinal());
+        tagPattern(pattern, UPGRADE_TAG, upgradeTag);
+    }
+
+    public static void tagStatus(ItemStack pattern) {
+        CompoundTag root = pattern.getTagElement(ROOT);
+        if (root == null) {
+            return;
+        }
+        if (root.contains(UPGRADE_TAG, Tag.TAG_COMPOUND)) {
+            CompoundTag upgradeTag = root.getCompound(UPGRADE_TAG);
+            upgradeTag.putByte("status", (byte) UPGRADE.ordinal());
+        }
+    }
+
+    public static void tagFake(ItemStack pattern) {
+        CompoundTag fakeTag = new CompoundTag();
+        fakeTag.putBoolean("isFake", true);
+        tagPattern(pattern, FAKE_TAG, fakeTag);
+    }
+
+    public static void tagFuzzy(ItemStack pattern) {
+        CompoundTag fuzzyTag = new CompoundTag();
+        fuzzyTag.putBoolean("isFuzzy", true);
+        tagPattern(pattern, FUZZY_TAG, fuzzyTag);
+    }
+    // endregion
+
+    // region get functions
+    private static NimblePatternSource getSource(ItemStack pattern, MinecraftServer server) {
+        CompoundTag root = pattern.getTagElement(ROOT);
+        if (root == null) {
+            return null;
+        }
+        if (root.contains(SOURCE_TAG, Tag.TAG_COMPOUND)) {
+            try {
+                CompoundTag sourceTag = root.getCompound(SOURCE_TAG);
+                ResourceLocation dim = ResourceLocation.tryParse(sourceTag.getString("dim"));
+                if (dim == null) {
+                    return null;
+                }
+                BlockPos pos = BlockPos.of(sourceTag.getLong("pos"));
+                int sideNum = sourceTag.getByte("side");
+                Direction side = sideNum == 6 ? null : Direction.from3DDataValue(sideNum);
+                int slot = sourceTag.getInt("slot");
+
+                // find the source pattern provider based on source info
+                var dimKey = ResourceKey.create(Registries.DIMENSION, dim);
+                ServerLevel level = server.getLevel(dimKey);
+                if (level == null || !level.hasChunkAt(pos)) {
+                    return null;
+                }
+                InternalInventory inv = getTerminalPatternInventory(level.getBlockEntity(pos), side);
+                if (inv == null) {
+                    return null;
+                }
+                return new NimblePatternSource(level, pos, side, slot, inv);
+            } catch (Exception e) {
+                return null;
+            }
+        }
+        return null;
+    }
+
     public static String getCondition(ItemStack pattern) {
         CompoundTag root = pattern.getTagElement(ROOT);
         if (root == null) {
@@ -217,56 +256,18 @@ public class NimblePatternTag {
         return "";
     }
 
-    public static void tagUpdate(ItemStack pattern, String condition) {
-        CompoundTag root = pattern.getOrCreateTagElement(ROOT);
-        CompoundTag upgradeTag = new CompoundTag();
-        upgradeTag.putString("condition", condition);
-        upgradeTag.putByte("status", (byte) LATEST.ordinal());
-        root.put(UPGRADE_TAG, upgradeTag);
-    }
-
-    public static void tagStatus(ItemStack pattern) {
+    public static UpgradeState getStatus(ItemStack pattern) {
         CompoundTag root = pattern.getTagElement(ROOT);
         if (root == null) {
-            return;
-        }
-        if (root.contains(UPGRADE_TAG, Tag.TAG_COMPOUND)) {
-            CompoundTag upgradeTag = root.getCompound(UPGRADE_TAG);
-            upgradeTag.putByte("status", (byte) UPDATE.ordinal());
-            root.put(UPGRADE_TAG, upgradeTag);
-        }
-    }
-
-    public static UpdateState getStatus(ItemStack pattern) {
-        CompoundTag root = pattern.getTagElement(ROOT);
-        if (root == null) {
-            return UpdateState.UNTRACKED;
+            return UpgradeState.UNTRACKED;
         }
         if (root.contains(UPGRADE_TAG, Tag.TAG_COMPOUND)) {
             CompoundTag upgradeTag = root.getCompound(UPGRADE_TAG);
             byte status = upgradeTag.getByte("status");
-            var values = UpdateState.values();
-            return status >= 0 && status < values.length ? values[status] : UpdateState.UNTRACKED;
+            var values = UpgradeState.values();
+            return status >= 0 && status < values.length ? values[status] : UpgradeState.UNTRACKED;
         }
-        return UpdateState.UNTRACKED;
-    }
-
-    public static void removeConditionTag(ItemStack pattern) {
-        CompoundTag root = pattern.getTagElement(ROOT);
-        if (root == null) {
-            return;
-        }
-        root.remove(UPGRADE_TAG);
-        if (root.isEmpty()) {
-            pattern.removeTagKey(ROOT);
-        }
-    }
-
-    public static void tagFake(ItemStack pattern) {
-        CompoundTag root = pattern.getOrCreateTagElement(ROOT);
-        CompoundTag fakeTag = new CompoundTag();
-        fakeTag.putBoolean("isFake", true);
-        root.put(FAKE_TAG, fakeTag);
+        return UpgradeState.UNTRACKED;
     }
 
     public static boolean getFake(ItemStack pattern) {
@@ -280,5 +281,45 @@ public class NimblePatternTag {
         }
         return false;
     }
+
+    public static boolean getFuzzy(ItemStack pattern) {
+        CompoundTag root = pattern.getTagElement(ROOT);
+        if (root == null) {
+            return false;
+        }
+        if (root.contains(FUZZY_TAG, Tag.TAG_COMPOUND)) {
+            CompoundTag fuzzyTag = root.getCompound(FUZZY_TAG);
+            return fuzzyTag.getBoolean("isFuzzy");
+        }
+        return false;
+    }
+    // endregion
+
+    /**
+     * Filter useless tags for crafting, like source and upgrade.
+     */
+    public static ItemStack filterCraftingTags(ItemStack pattern) {
+        CompoundTag root = pattern.getTagElement(ROOT);
+        if (root != null) {
+            root.remove(SOURCE_TAG);
+            root.remove(UPGRADE_TAG);
+            if (root.isEmpty()) {
+                pattern.removeTagKey(ROOT);
+            }
+        }
+        return pattern;
+    }
+
+    public static void removeConditionTag(ItemStack pattern) {
+        CompoundTag root = pattern.getTagElement(ROOT);
+        if (root == null) {
+            return;
+        }
+        root.remove(UPGRADE_TAG);
+        if (root.isEmpty()) {
+            pattern.removeTagKey(ROOT);
+        }
+    }
+
 
 }

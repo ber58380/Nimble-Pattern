@@ -8,9 +8,16 @@ import appeng.api.stacks.GenericStack;
 import appeng.api.stacks.KeyCounter;
 import appeng.crafting.CraftingLink;
 import appeng.crafting.execution.CraftingCpuLogic;
+import appeng.crafting.execution.ExecutingCraftingJob;
 import appeng.crafting.inv.ListCraftingInventory;
+import com.ber.nimblePattern.crafting.FuzzyOutputLedger;
 import com.ber.nimblePattern.pattern.NimbleProcessingPattern;
+import com.ber.nimblePattern.pattern.PatternMapping;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.Tag;
+import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -18,21 +25,19 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-import java.util.HashMap;
-import java.util.Map;
-
 // mod GTLCore will overwrite "executeCrafting", set higher priority to mixin later
 @Mixin(value = CraftingCpuLogic.class, remap = false, priority = 1200)
 public class CraftingCpuLogicMixin {
     @Unique
-    // {fuzzyKey: {exactKey: amount}}
-    private final Map<AEKey, Map<AEKey, Long>> fuzzyOutputs = new HashMap<AEKey, Map<AEKey, Long>>();
+    private final FuzzyOutputLedger fuzzyOutputLedger = new FuzzyOutputLedger();
     @Unique
     private NimbleProcessingPattern currentPattern;
     @Unique
     private boolean isFakePattern;
     @Unique
     private boolean isFuzzyPattern;
+    @Shadow
+    private @Nullable ExecutingCraftingJob job;
 
     @Inject(method = "executeCrafting", at = @At("HEAD"))
     private void initializeFlags(CallbackInfoReturnable<Integer> cir) {
@@ -47,7 +52,7 @@ public class CraftingCpuLogicMixin {
             at = @At(value = "INVOKE",
                     target = "Lappeng/api/networking/crafting/ICraftingProvider;pushPattern(Lappeng/api/crafting/IPatternDetails;[Lappeng/api/stacks/KeyCounter;)Z"))
     private boolean trackCurrentPattern(ICraftingProvider provider, IPatternDetails details, KeyCounter[] craftingContainer) {
-        boolean result = provider.pushPattern(details, craftingContainer);
+        boolean result = provider.pushPattern(PatternMapping.getOriginalPattern(provider, details), craftingContainer);
         currentPattern = result && details instanceof NimbleProcessingPattern npp ? npp : null;
         return result;
     }
@@ -73,10 +78,8 @@ public class CraftingCpuLogicMixin {
             }
         }
         // fuzzy pattern
-        if (currentPattern != null && currentPattern.getFuzzyMode()) {
-            // record fuzzy outputs by fuzzy keys
-            fuzzyOutputs.computeIfAbsent(what.dropSecondary(), k -> new HashMap<>())
-                    .merge(what, amount, Long::sum);
+        if (currentPattern != null && currentPattern.getFuzzyMode() && mode == Actionable.MODULATE) {
+            fuzzyOutputLedger.add(what, amount);
         }
         // register output for normal and fuzzy patterns
         inv.insert(what, amount, mode);
@@ -101,51 +104,10 @@ public class CraftingCpuLogicMixin {
             at = @At(value = "INVOKE",
                     target = "Lappeng/crafting/inv/ListCraftingInventory;extract(Lappeng/api/stacks/AEKey;JLappeng/api/config/Actionable;)J"))
     private long fuzzyExtract(ListCraftingInventory inv, AEKey what, long amount, Actionable mode) {
-        if (mode == Actionable.SIMULATE) {
-            // try exact extract first
-            long exact = inv.extract(what, amount, Actionable.SIMULATE);
-            if (exact > 0) {
-                return exact;
-            }
-            // if failed, try fuzzy extract
-            var inner = fuzzyOutputs.get(what.dropSecondary());
-            exact = inner == null ? 0 : inner.values().stream().mapToLong(Long::longValue).sum();
-            if (exact > 0) {
-                isFuzzyPattern = true;
-            }
-            return Math.min(exact, amount);
-        }
-        // mode == Actionable.MODULATE
-        // try exact extract first
-        long exact = inv.extract(what, amount, Actionable.MODULATE);
-        // if still have remainder, try fuzzy extract
-        long remaining = amount - exact;
-        if (remaining > 0) {
-            var inner = fuzzyOutputs.get(what.dropSecondary());
-            if (inner != null) {
-                isFuzzyPattern = true;
-                var iterator = inner.entrySet().iterator();
-                while (iterator.hasNext()) {
-                    var entry = iterator.next();
-                    long deduction = Math.min(remaining, entry.getValue());
-                    inv.extract(entry.getKey(), deduction, Actionable.MODULATE);
-                    remaining -= deduction;
-                    long leftValue = entry.getValue() - deduction;
-                    if (leftValue == 0) {
-                        iterator.remove();
-                    } else {
-                        entry.setValue(leftValue);
-                    }
-                    if (remaining == 0) {
-                        break;
-                    }
-                }
-                if (inner.isEmpty()) {
-                    fuzzyOutputs.remove(what.dropSecondary());
-                }
-            }
-        }
-        return amount - remaining;
+        var receipt = fuzzyOutputLedger.extract(inv, what, amount, mode, (key, accepted) -> {
+        });
+        isFuzzyPattern = receipt.fuzzyMode();
+        return receipt.amount();
     }
 
     // check if the output is the final output
@@ -163,11 +125,24 @@ public class CraftingCpuLogicMixin {
 
     @Inject(method = "finishJob", at = @At("HEAD"))
     private void injectFinishJob(boolean success, CallbackInfo ci) {
-        fuzzyOutputs.clear();
+        fuzzyOutputLedger.clear();
     }
 
     @Inject(method = "cancel", at = @At("HEAD"))
     private void injectCancel(CallbackInfo ci) {
-        fuzzyOutputs.clear();
+        fuzzyOutputLedger.clear();
+    }
+
+    @Inject(method = "writeToNBT", at = @At("TAIL"))
+    private void injectWriteToNBT(CompoundTag tag, CallbackInfo ci) {
+        tag.put("fuzzyOutputLedger", fuzzyOutputLedger.save());
+    }
+
+    @Inject(method = "readFromNBT", at = @At("TAIL"))
+    private void injectReadFromNBT(CompoundTag tag, CallbackInfo ci) {
+        fuzzyOutputLedger.load(tag.getList("fuzzyOutputLedger", Tag.TAG_COMPOUND));
+        if (job == null) {
+            fuzzyOutputLedger.clear();
+        }
     }
 }

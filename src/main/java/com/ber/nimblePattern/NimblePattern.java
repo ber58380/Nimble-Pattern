@@ -14,11 +14,13 @@ import com.ber.nimblePattern.item.storage.LoopStorageCellHandler;
 import com.ber.nimblePattern.menu.PatternTagTermMenu;
 import com.ber.nimblePattern.network.NimblePatternNetwork;
 import com.ber.nimblePattern.parts.PatternTagTerminalPart;
+import com.ber.nimblePattern.pattern.PatternMapping;
 import com.ber.nimblePattern.pattern.PatternUpgradeTracker;
 import com.glodblock.github.extendedae.common.EPPItemAndBlock;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.server.ServerStartingEvent;
+import net.minecraftforge.event.server.ServerStoppingEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
@@ -63,6 +65,11 @@ public class NimblePattern {
     @SubscribeEvent
     public void onServerStarting(ServerStartingEvent event) {
         // Do something when the server starts
+    }
+
+    @SubscribeEvent
+    public void onServerStopping(ServerStoppingEvent event) {
+        PatternMapping.clear();
     }
 
     @SubscribeEvent

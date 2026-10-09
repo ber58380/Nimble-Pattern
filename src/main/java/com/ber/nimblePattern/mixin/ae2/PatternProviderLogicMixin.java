@@ -5,15 +5,20 @@ import appeng.api.config.Settings;
 import appeng.api.crafting.IPatternDetails;
 import appeng.api.networking.IManagedGridNode;
 import appeng.api.networking.crafting.ICraftingProvider;
+import appeng.api.stacks.AEItemKey;
 import appeng.api.stacks.AEKey;
 import appeng.api.upgrades.IUpgradeInventory;
 import appeng.api.upgrades.IUpgradeableObject;
 import appeng.api.upgrades.UpgradeInventories;
+import appeng.blockentity.crafting.IMolecularAssemblerSupportedPattern;
 import appeng.core.definitions.AEItems;
 import appeng.crafting.pattern.AEProcessingPattern;
 import appeng.helpers.patternprovider.PatternProviderLogic;
 import appeng.helpers.patternprovider.PatternProviderLogicHost;
 import appeng.util.ConfigManager;
+import com.ber.nimblePattern.pattern.NimbleAssemblerPattern;
+import com.ber.nimblePattern.pattern.NimblePatternTag;
+import com.ber.nimblePattern.pattern.NimblePatternWrapper;
 import com.ber.nimblePattern.pattern.NimbleProcessingPattern;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.item.ItemStack;
@@ -41,10 +46,19 @@ public class PatternProviderLogicMixin implements IUpgradeableObject {
     @Shadow
     @Final
     private ConfigManager configManager;
+    @Unique
+    private boolean cachedFuzzyMode;
+    @Unique
+    private List<IPatternDetails> cachedRaw;
+    @Unique
+    private List<IPatternDetails> cachedWrapped;
 
 
     @Inject(method = "<init>(Lappeng/api/networking/IManagedGridNode;Lappeng/helpers/patternprovider/PatternProviderLogicHost;I)V", at = @At("TAIL"))
     private void registerUpgrades(IManagedGridNode mainNode, PatternProviderLogicHost host, int patternInventorySize, CallbackInfo ci) {
+        this.cachedFuzzyMode = false;
+        this.cachedRaw = List.of();
+        this.cachedWrapped = List.of();
         this.upgrades = UpgradeInventories.forMachine(host.getMainMenuIcon().getItem(), 1, () -> {
             this.host.saveChanges();
             ICraftingProvider.requestUpdate(mainNode);
@@ -81,18 +95,52 @@ public class PatternProviderLogicMixin implements IUpgradeableObject {
         this.upgrades.clear();
     }
 
-    // wrap the patterns into NimbleProcessingPattern
+    /**
+     * If the pattern has tagged with nimble_pattern, wrap it
+     */
     @Inject(method = "getAvailablePatterns", at = @At("RETURN"), cancellable = true)
     private void wrapAvailablePatterns(CallbackInfoReturnable<List<IPatternDetails>> cir) {
         var raw = cir.getReturnValue();
+
+        // Check if there are any changes in the pattern provider.
+        // If not changes, use cached patterns directly.
+        boolean fuzzyMode = this.upgrades.isInstalled(AEItems.FUZZY_CARD);
+        boolean unchanged = cachedFuzzyMode == fuzzyMode && cachedRaw.size() == raw.size();
+        if (unchanged) {
+            for (int i = 0; i < raw.size(); i++) {
+                if (cachedRaw.get(i) != raw.get(i)) {
+                    unchanged = false;
+                    break;
+                }
+            }
+        }
+        if (unchanged) {
+            cir.setReturnValue(cachedWrapped);
+            return;
+        }
+
+        // Since cacheable patterns don't match the new patterns, wrap patterns from scratch.
         var wrapped = new ArrayList<IPatternDetails>(raw.size());
         for (var pattern : raw) {
+            var definition = pattern.getDefinition();
+            var stack = NimblePatternTag.filterCraftingTags(definition.toStack());
             if (pattern instanceof AEProcessingPattern aep) {
-                wrapped.add(new NimbleProcessingPattern(aep, this.upgrades.isInstalled(AEItems.FUZZY_CARD)));
+                if (fuzzyMode) {
+                    NimblePatternTag.tagFuzzy(stack);
+                }
+                definition = AEItemKey.of(stack);
+                wrapped.add(new NimbleProcessingPattern(aep, definition));
+            } else if (pattern instanceof IMolecularAssemblerSupportedPattern asp) {
+                definition = AEItemKey.of(stack);
+                wrapped.add(new NimbleAssemblerPattern(asp, definition));
             } else {
+                // Normally there should not have this case, but for safe
                 wrapped.add(pattern);
             }
         }
+        cachedRaw = List.copyOf(raw);
+        cachedWrapped = List.copyOf(wrapped);
+        cachedFuzzyMode = fuzzyMode;
         cir.setReturnValue(wrapped);
     }
 
@@ -104,9 +152,9 @@ public class PatternProviderLogicMixin implements IUpgradeableObject {
         if (patterns.contains(patternDetails)) {
             return true;
         }
-        if (patternDetails instanceof NimbleProcessingPattern npp) {
+        if (patternDetails instanceof NimblePatternWrapper<?> npw) {
             for (var pattern : patterns) {
-                if (pattern.equals(npp.getPattern())) {
+                if (pattern.equals(npw.getPattern())) {
                     return true;
                 }
             }

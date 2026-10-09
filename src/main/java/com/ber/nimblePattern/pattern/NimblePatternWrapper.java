@@ -6,9 +6,15 @@ import appeng.api.stacks.GenericStack;
 
 public class NimblePatternWrapper<WrappedPattern extends IPatternDetails> implements IPatternDetails {
     protected final WrappedPattern pattern;
+    private final AEItemKey definition;
+    private final AEItemKey identity;
+    private int hashCode;
 
-    public NimblePatternWrapper(WrappedPattern pattern) {
+    public NimblePatternWrapper(WrappedPattern pattern, AEItemKey definition) {
         this.pattern = pattern;
+        this.definition = definition;
+        this.identity = AEItemKey.of(definition.toStack());
+        this.hashCode = identity.hashCode();
     }
 
     public WrappedPattern getPattern() {
@@ -17,7 +23,7 @@ public class NimblePatternWrapper<WrappedPattern extends IPatternDetails> implem
 
     @Override
     public AEItemKey getDefinition() {
-        return pattern.getDefinition();
+        return definition;
     }
 
     @Override
@@ -37,14 +43,11 @@ public class NimblePatternWrapper<WrappedPattern extends IPatternDetails> implem
 
     @Override
     public int hashCode() {
-        return pattern.hashCode();
+        return hashCode;
     }
 
     @Override
     public boolean equals(Object obj) {
-        if (obj instanceof NimblePatternWrapper<?> wrapper) {
-            return pattern.equals(wrapper.pattern);
-        }
-        return pattern.equals(obj);
+        return this == obj || obj instanceof NimblePatternWrapper<?> other && identity.equals(other.identity);
     }
 }

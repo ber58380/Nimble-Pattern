@@ -334,7 +334,7 @@ public class PatternTagTermMenu extends AEBaseMenu {
             if (pattern.isEmpty()) {
                 continue;
             }
-            NimblePatternTag.tagUpdate(pattern, condition);
+            NimblePatternTag.tagUpgrade(pattern, condition);
             if (NimblePatternTag.pushPatternBack(pattern, getPlayer().getServer())) {
                 inputPatternInv.setItemDirect(i, ItemStack.EMPTY);
             } else {

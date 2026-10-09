@@ -1,7 +1,7 @@
 package com.ber.nimblePattern.pattern;
 
-public enum UpdateState {
+public enum UpgradeState {
     UNTRACKED,
     LATEST,
-    UPDATE
+    UPGRADE
 }

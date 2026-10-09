@@ -15,7 +15,7 @@ import net.minecraftforge.server.ServerLifecycleHooks;
 
 import java.util.*;
 
-import static com.ber.nimblePattern.pattern.UpdateState.UPDATE;
+import static com.ber.nimblePattern.pattern.UpgradeState.UPGRADE;
 
 public final class PatternUpgradeTracker {
     private static final PatternUpgradeTracker INSTANCE = new PatternUpgradeTracker();
@@ -80,7 +80,7 @@ public final class PatternUpgradeTracker {
                                 continue;
                             }
                             String condition = NimblePatternTag.getCondition(pattern);
-                            if (toProcess.contains(condition) && NimblePatternTag.getStatus(pattern) != UPDATE) {
+                            if (toProcess.contains(condition) && NimblePatternTag.getStatus(pattern) != UPGRADE) {
                                 NimblePatternTag.tagStatus(pattern);
                                 inv.setItemDirect(i, pattern);
                                 upgradeCounter.merge(condition, 1, Integer::sum);
