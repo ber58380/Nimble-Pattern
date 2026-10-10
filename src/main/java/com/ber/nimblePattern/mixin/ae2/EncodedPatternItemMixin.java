@@ -2,7 +2,7 @@ package com.ber.nimblePattern.mixin.ae2;
 
 import appeng.crafting.pattern.EncodedPatternItem;
 import com.ber.nimblePattern.pattern.NimblePatternTag;
-import com.ber.nimblePattern.pattern.UpgradeState;
+import com.ber.nimblePattern.pattern.upgrade.UpgradeState;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;

@@ -1,4 +1,4 @@
-package com.ber.nimblePattern.pattern;
+package com.ber.nimblePattern.pattern.upgrade;
 
 public enum UpgradeState {
     UNTRACKED,

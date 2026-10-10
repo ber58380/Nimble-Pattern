@@ -1,4 +1,4 @@
-package com.ber.nimblePattern.pattern;
+package com.ber.nimblePattern.pattern.wrapper;
 
 import appeng.api.stacks.AEItemKey;
 import appeng.api.stacks.KeyCounter;

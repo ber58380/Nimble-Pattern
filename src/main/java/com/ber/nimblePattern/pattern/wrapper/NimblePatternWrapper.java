@@ -1,4 +1,4 @@
-package com.ber.nimblePattern.pattern;
+package com.ber.nimblePattern.pattern.wrapper;
 
 import appeng.api.crafting.IPatternDetails;
 import appeng.api.stacks.AEItemKey;

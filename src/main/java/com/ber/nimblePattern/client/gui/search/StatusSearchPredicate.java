@@ -1,13 +1,13 @@
 package com.ber.nimblePattern.client.gui.search;
 
 import com.ber.nimblePattern.pattern.NimblePatternTag;
-import com.ber.nimblePattern.pattern.UpgradeState;
+import com.ber.nimblePattern.pattern.upgrade.UpgradeState;
 import net.minecraft.world.item.ItemStack;
 
 import java.util.Locale;
 import java.util.function.Predicate;
 
-import static com.ber.nimblePattern.pattern.UpgradeState.*;
+import static com.ber.nimblePattern.pattern.upgrade.UpgradeState.*;
 
 final class StatusSearchPredicate implements Predicate<ItemStack> {
     private final UpgradeState state;
@@ -21,7 +21,7 @@ final class StatusSearchPredicate implements Predicate<ItemStack> {
             case "LATEST", "1":
                 this.state = LATEST;
                 break;
-            case "UPDATE", "2":
+            case "UPGRADE", "2":
                 this.state = UPGRADE;
                 break;
             default:

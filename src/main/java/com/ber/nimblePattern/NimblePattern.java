@@ -15,7 +15,7 @@ import com.ber.nimblePattern.menu.PatternTagTermMenu;
 import com.ber.nimblePattern.network.NimblePatternNetwork;
 import com.ber.nimblePattern.parts.PatternTagTerminalPart;
 import com.ber.nimblePattern.pattern.PatternMapping;
-import com.ber.nimblePattern.pattern.PatternUpgradeTracker;
+import com.ber.nimblePattern.pattern.upgrade.PatternUpgradeTracker;
 import com.glodblock.github.extendedae.common.EPPItemAndBlock;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.TickEvent;

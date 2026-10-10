@@ -1,4 +1,4 @@
-package com.ber.nimblePattern.pattern;
+package com.ber.nimblePattern.pattern.upgrade;
 
 import appeng.api.inventories.InternalInventory;
 import net.minecraft.world.item.ItemStack;

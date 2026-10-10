@@ -27,6 +27,21 @@ public final class LoopStorageCellAccess {
         return null;
     }
 
+    /** Finds only a cell that is currently mounted, including an empty cell awaiting its seed. */
+    public static LoopStorageCellInventory findMounted(MEStorage networkStorage, UUID cellId) {
+        if (networkStorage instanceof NetworkStorageAccessorMixin accessor) {
+            for (var inventories : accessor.nimblePattern$getPriorityInventory().values()) {
+                for (var inventory : inventories) {
+                    var cell = LoopStorageCellVisibility.unwrapCell(inventory);
+                    if (cell instanceof LoopStorageCellInventory loopCell && cellId.equals(loopCell.getCellId())) {
+                        return loopCell;
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
     public static boolean getAvailableWithoutLoopCells(MEStorage networkStorage, KeyCounter out) {
         if (networkStorage instanceof NetworkStorageAccessorMixin accessor) {
             for (var inventories : accessor.nimblePattern$getPriorityInventory().values()) {

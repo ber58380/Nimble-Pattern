@@ -24,6 +24,7 @@ import appeng.parts.crafting.PatternProviderPart;
 import appeng.util.inv.AppEngInternalInventory;
 import com.ber.nimblePattern.compat.extendedae.ExtendedAECompat;
 import com.ber.nimblePattern.helpers.IPatternTagMenuHost;
+import com.ber.nimblePattern.item.storage.LoopStorageCellItem;
 import com.ber.nimblePattern.menu.slot.LoopStorageCellSlot;
 import com.ber.nimblePattern.network.ClearPacket;
 import com.ber.nimblePattern.network.NimblePatternNetwork;
@@ -32,13 +33,15 @@ import com.ber.nimblePattern.network.PatternSyncCompletePacket;
 import com.ber.nimblePattern.parts.PatternTagLogic;
 import com.ber.nimblePattern.parts.TagMode;
 import com.ber.nimblePattern.pattern.NimblePatternTag;
-import com.ber.nimblePattern.pattern.PatternInventorySnapshots;
+import com.ber.nimblePattern.pattern.loop.LoopPatternParser;
+import com.ber.nimblePattern.pattern.upgrade.PatternInventorySnapshots;
 import it.unimi.dsi.fastutil.ints.Int2ObjectArrayMap;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Inventory;
@@ -50,6 +53,7 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraftforge.network.PacketDistributor;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
 import java.util.IdentityHashMap;
 import java.util.Map;
 
@@ -327,13 +331,63 @@ public class PatternTagTermMenu extends AEBaseMenu {
         }
     }
 
+    private void showLoopResults(String result) {
+        getPlayer().displayClientMessage(
+                Component.translatable("gui.nimble_pattern.pattern_tag_terminal.loop." + result), false);
+    }
+
     public void applyLoop() {
         if (isClientSide()) {
             sendClientAction("applyLoop");
             return;
         }
-        // TODO:实现loop页apply的逻辑
-        int i = 0;
+        var entry = GenericStack.fromItemStack(loopInputSlot.getItem());
+        var exit = GenericStack.fromItemStack(loopOutputSlot.getItem());
+        var cellStack = loopStorageCellSlot.getItem();
+        if (!(cellStack.getItem() instanceof LoopStorageCellItem cell)) {
+            showLoopResults("missing_cell");
+            return;
+        }
+
+        var patterns = new ArrayList<ItemStack>();
+        var patternSlots = new ArrayList<Integer>();
+        for (int i = 0; i < inputPatternInv.size(); i++) {
+            var pattern = inputPatternInv.getStackInSlot(i);
+            if (!pattern.isEmpty()) {
+                patterns.add(pattern.copy());
+                patternSlots.add(i);
+            }
+        }
+
+        try {
+            var cellId = cell.getOrCreateCellId(cellStack);
+            var loopChain = LoopPatternParser.parse(getPlayer().level(), patterns, entry, exit, cellId);
+            if (!cell.canAddConfiguredAmount(cellStack, loopChain.entry(), loopChain.seedAmount())) {
+                showLoopResults("cell_capacity");
+                return;
+            }
+            for (int i = 0; i < loopChain.patterns().size(); i++) {
+                NimblePatternTag.tagLoop(loopChain.patterns().get(i), loopChain.metadata().get(i));
+            }
+            cell.addConfiguredAmount(cellStack, loopChain.entry(), loopChain.seedAmount());
+            loopStorageCellInv.setItemDirect(0, cellStack);
+
+            for (int i = 0; i < loopChain.patterns().size(); i++) {
+                var pattern = loopChain.patterns().get(i);
+                int terminalSlot = patternSlots.get(loopChain.indices().get(i));
+                if (NimblePatternTag.pushPatternBack(pattern, getPlayer().getServer())) {
+                    inputPatternInv.setItemDirect(terminalSlot, ItemStack.EMPTY);
+                } else {
+                    inputPatternInv.setItemDirect(terminalSlot, pattern);
+                }
+            }
+            showLoopResults("success");
+        } catch (LoopPatternParser.ParseException e) {
+            showLoopResults(e.getReason());
+        } catch (ArithmeticException e) {
+            showLoopResults("amount_overflow");
+            ;
+        }
     }
 
     private void sendFullUpdate(@Nullable IGrid grid) {

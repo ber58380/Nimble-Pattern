@@ -2,14 +2,18 @@ package com.ber.nimblePattern.pattern;
 
 import appeng.api.crafting.PatternDetailsHelper;
 import appeng.api.inventories.InternalInventory;
+import appeng.api.stacks.GenericStack;
 import appeng.blockentity.networking.CableBusBlockEntity;
 import appeng.helpers.patternprovider.PatternContainer;
 import com.ber.nimblePattern.NimblePattern;
 import com.ber.nimblePattern.compat.extendedae.ExtendedAECompat;
+import com.ber.nimblePattern.pattern.loop.LoopPatternData;
+import com.ber.nimblePattern.pattern.upgrade.UpgradeState;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
@@ -19,9 +23,10 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraftforge.registries.ForgeRegistries;
 
+import java.util.ArrayList;
 import java.util.List;
 
-import static com.ber.nimblePattern.pattern.UpgradeState.*;
+import static com.ber.nimblePattern.pattern.upgrade.UpgradeState.*;
 
 public class NimblePatternTag {
     private static final String ROOT = NimblePattern.MOD_ID;
@@ -33,6 +38,8 @@ public class NimblePatternTag {
     private static final String FAKE_TAG = "fake";
     // the fuzzy tag includes: isFuzzy
     private static final String FUZZY_TAG = "fuzzy";
+    // the loop tag includes: loopId, cellId, index, size, entry, exit, seed, netOutput, externalInputs, outputs
+    private static final String LOOP_TAG = "loop";
 
     public static void removeTag(ItemStack pattern) {
         CompoundTag root = pattern.getTagElement(ROOT);
@@ -169,6 +176,14 @@ public class NimblePatternTag {
         root.put(key, value);
     }
 
+    private static ListTag writeGenericStacks(List<GenericStack> stacks) {
+        var values = new ListTag();
+        for (var stack : stacks) {
+            values.add(GenericStack.writeTag(stack));
+        }
+        return values;
+    }
+
     public static void tagSource(ItemStack pattern, ServerLevel level, BlockPos pos, Direction side, int slot) {
         var sourceTag = new CompoundTag();
         sourceTag.putString("dim", level.dimension().location().toString());
@@ -207,9 +222,35 @@ public class NimblePatternTag {
         fuzzyTag.putBoolean("isFuzzy", true);
         tagPattern(pattern, FUZZY_TAG, fuzzyTag);
     }
+
+    public static void tagLoop(ItemStack pattern, LoopPatternData data) {
+        CompoundTag loopTag = new CompoundTag();
+        loopTag.putUUID("loopId", data.loopId());
+        loopTag.putUUID("cellId", data.storageCellId());
+        loopTag.putInt("index", data.index());
+        loopTag.putInt("size", data.size());
+        loopTag.put("entry", GenericStack.writeTag(data.entry()));
+        loopTag.put("exit", GenericStack.writeTag(data.exit()));
+        loopTag.putLong("seed", data.seedAmount());
+        loopTag.putLong("netOutput", data.netOutputAmount());
+        loopTag.put("externalInputs", writeGenericStacks(data.externalInputs()));
+        loopTag.put("outputs", writeGenericStacks(data.outputs()));
+        tagPattern(pattern, LOOP_TAG, loopTag);
+    }
     // endregion
 
     // region get functions
+    private static List<GenericStack> readGenericStacks(ListTag listTag) {
+        var stacks = new ArrayList<GenericStack>(listTag.size());
+        for (int i = 0; i < listTag.size(); ++i) {
+            var stack = GenericStack.readTag(listTag.getCompound(i));
+            if (stack != null && stack.amount() > 0) {
+                stacks.add(stack);
+            }
+        }
+        return stacks;
+    }
+
     private static NimblePatternSource getSource(ItemStack pattern, MinecraftServer server) {
         CompoundTag root = pattern.getTagElement(ROOT);
         if (root == null) {
@@ -298,6 +339,34 @@ public class NimblePatternTag {
             return fuzzyTag.getBoolean("isFuzzy");
         }
         return false;
+    }
+
+    public static LoopPatternData getLoop(ItemStack pattern) {
+        CompoundTag root = pattern.getTagElement(ROOT);
+        if (root == null || !root.contains(LOOP_TAG, Tag.TAG_COMPOUND)) {
+            return null;
+        }
+        try {
+            var tag = root.getCompound(LOOP_TAG);
+            var entry = GenericStack.readTag(tag.getCompound("entry"));
+            var exit = GenericStack.readTag(tag.getCompound("exit"));
+            if (entry == null || exit == null) {
+                return null;
+            }
+            return new LoopPatternData(
+                    tag.getUUID("loopId"),
+                    tag.getUUID("cellId"),
+                    tag.getInt("index"),
+                    tag.getInt("size"),
+                    entry,
+                    exit,
+                    tag.getLong("seed"),
+                    tag.getLong("netOutput"),
+                    readGenericStacks(tag.getList("externalInputs", Tag.TAG_COMPOUND)),
+                    readGenericStacks(tag.getList("outputs", Tag.TAG_COMPOUND)));
+        } catch (RuntimeException ignored) {
+            return null;
+        }
     }
     // endregion
 

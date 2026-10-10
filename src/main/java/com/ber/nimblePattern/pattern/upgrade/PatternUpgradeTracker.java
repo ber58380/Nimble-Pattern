@@ -1,4 +1,4 @@
-package com.ber.nimblePattern.pattern;
+package com.ber.nimblePattern.pattern.upgrade;
 
 import appeng.api.inventories.InternalInventory;
 import appeng.helpers.patternprovider.PatternContainer;
@@ -7,6 +7,7 @@ import appeng.items.tools.powered.WirelessTerminalItem;
 import appeng.util.SearchInventoryEvent;
 import com.ber.nimblePattern.network.NimblePatternNetwork;
 import com.ber.nimblePattern.network.PatternUpgradeNotificationPacket;
+import com.ber.nimblePattern.pattern.NimblePatternTag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
@@ -15,7 +16,7 @@ import net.minecraftforge.server.ServerLifecycleHooks;
 
 import java.util.*;
 
-import static com.ber.nimblePattern.pattern.UpgradeState.UPGRADE;
+import static com.ber.nimblePattern.pattern.upgrade.UpgradeState.UPGRADE;
 
 public final class PatternUpgradeTracker {
     private static final PatternUpgradeTracker INSTANCE = new PatternUpgradeTracker();

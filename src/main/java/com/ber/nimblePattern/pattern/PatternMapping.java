@@ -2,6 +2,7 @@ package com.ber.nimblePattern.pattern;
 
 import appeng.api.crafting.IPatternDetails;
 import appeng.api.networking.crafting.ICraftingProvider;
+import com.ber.nimblePattern.pattern.wrapper.NimblePatternWrapper;
 
 import java.util.HashMap;
 import java.util.List;
