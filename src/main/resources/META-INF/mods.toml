@@ -109,3 +109,5 @@ side = "BOTH"
 config = "nimble_pattern.mixins.json"
 [[mixins]]
 config = "nimble_pattern.extendedae.mixins.json"
+[[mixins]]
+config = "nimble_pattern.gtlcore.mixins.json"

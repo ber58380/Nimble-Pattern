@@ -16,6 +16,7 @@ import appeng.me.cluster.implementations.CraftingCPUCluster;
 import appeng.me.service.CraftingService;
 import com.ber.nimblePattern.crafting.FuzzyOutputLedger;
 import com.ber.nimblePattern.crafting.LoopCraftingController;
+import com.ber.nimblePattern.crafting.LoopBatchDispatch;
 import com.ber.nimblePattern.network.LoopSeedLostNotificationPacket;
 import com.ber.nimblePattern.network.NimblePatternNetwork;
 import com.ber.nimblePattern.pattern.PatternMapping;
@@ -62,10 +63,17 @@ public class CraftingCpuLogicMixin {
 
     @Inject(method = "executeCrafting", at = @At("HEAD"))
     private void initializeFlags(CallbackInfoReturnable<Integer> cir) {
+        LoopBatchDispatch.clear();
         isLoopFinalOutput = false;
         currentPattern = null;
         isFakePattern = false;
         isFuzzyPattern = false;
+    }
+
+    // A failed extraction or push must not leave a count for a later dispatch.
+    @Inject(method = "executeCrafting", at = @At("RETURN"))
+    private void clearBatchDispatch(CallbackInfoReturnable<Integer> cir) {
+        LoopBatchDispatch.clear();
     }
 
     // record what is the current pushing pattern
@@ -74,10 +82,11 @@ public class CraftingCpuLogicMixin {
             at = @At(value = "INVOKE",
                     target = "Lappeng/api/networking/crafting/ICraftingProvider;pushPattern(Lappeng/api/crafting/IPatternDetails;[Lappeng/api/stacks/KeyCounter;)Z"))
     private boolean trackCurrentPattern(ICraftingProvider provider, IPatternDetails details, KeyCounter[] craftingContainer) {
+        long operations = LoopBatchDispatch.take(details);
         boolean result;
         if (details instanceof NimbleProcessingPattern npp && npp.isLoopComposite()) {
             if (loopController == null) loopController = new LoopCraftingController(cluster);
-            result = loopController.start(npp, craftingContainer, 1);
+            result = loopController.start(npp, craftingContainer, operations);
         } else {
             result = provider.pushPattern(PatternMapping.getOriginalPattern(provider, details), craftingContainer);
         }
@@ -247,6 +256,7 @@ public class CraftingCpuLogicMixin {
 
     @Unique
     private void stopLoop() {
+        LoopBatchDispatch.clear();
         if (loopController != null) {
             for (var failure : loopController.releaseSeeds(inventory)) {
                 notifyLoopSeed(failure.key(), failure.returnFailed());
