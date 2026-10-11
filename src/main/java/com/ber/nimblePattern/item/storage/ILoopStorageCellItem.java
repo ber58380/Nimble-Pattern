@@ -1,6 +1,8 @@
 package com.ber.nimblePattern.item.storage;
 
+import appeng.api.networking.security.IActionSource;
 import appeng.api.stacks.AEKey;
+import appeng.api.storage.MEStorage;
 import net.minecraft.world.item.ItemStack;
 
 import java.util.Map;
@@ -21,5 +23,5 @@ public interface ILoopStorageCellItem {
 
     UUID getOrCreateCellId(ItemStack stack);
 
-    void clearConfiguredAmounts(ItemStack stack);
+    boolean clearConfiguredAmounts(ItemStack stack, Map<AEKey, Long> amounts, MEStorage storage, IActionSource source);
 }

@@ -22,11 +22,14 @@ public class PatternLoopPanel extends TagModePanel {
             WIDTH,
             HEIGHT).src(0, 0, WIDTH, HEIGHT);
     private final Button loopApplyButton;
+    private final Button loopClearButton;
 
     public PatternLoopPanel(PatternTagTermScreen<?> screen, WidgetContainer widgets) {
         super(screen, widgets);
         this.loopApplyButton = new NimbleButton(0, 0, 0, 0, Component.translatable("gui.nimble_pattern.pattern_tag_terminal.apply"), button -> menu.applyLoop());
+        this.loopClearButton = new NimbleButton(0, 0, 0, 0, Component.translatable("gui.nimble_pattern.pattern_tag_terminal.clear"), button -> menu.clearLoop());
         widgets.add("loopApplyButton", loopApplyButton);
+        widgets.add("loopClearButton", this.loopClearButton);
     }
 
     @Override
@@ -57,6 +60,7 @@ public class PatternLoopPanel extends TagModePanel {
     public void setVisible(boolean visible) {
         super.setVisible(visible);
         loopApplyButton.visible = visible;
+        loopClearButton.visible = visible;
         screen.setSlotsHidden(LOOP_INPUT, !visible);
         screen.setSlotsHidden(LOOP_OUTPUT, !visible);
         screen.setSlotsHidden(LOOP_STORAGE_CELL, !visible);

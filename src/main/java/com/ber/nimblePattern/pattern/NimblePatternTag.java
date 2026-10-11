@@ -2,6 +2,7 @@ package com.ber.nimblePattern.pattern;
 
 import appeng.api.crafting.PatternDetailsHelper;
 import appeng.api.inventories.InternalInventory;
+import appeng.api.stacks.AEKey;
 import appeng.api.stacks.GenericStack;
 import appeng.blockentity.networking.CableBusBlockEntity;
 import appeng.helpers.patternprovider.PatternContainer;
@@ -23,8 +24,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraftforge.registries.ForgeRegistries;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 import static com.ber.nimblePattern.pattern.upgrade.UpgradeState.*;
 
@@ -368,6 +368,26 @@ public class NimblePatternTag {
             return null;
         }
     }
+
+    /**
+     * This function is used to overview all crafting modes of the pattern.
+     */
+    public static Map<String, Boolean> getInfo(ItemStack pattern) {
+        Map<String, Boolean> info = new HashMap<>(Map.of("fake", false, "loop", false));
+        CompoundTag root = pattern.getTagElement(ROOT);
+        if (root == null) {
+            return info;
+        }
+        if (root.contains(FAKE_TAG, Tag.TAG_COMPOUND)) {
+            CompoundTag fakeTag = root.getCompound(FAKE_TAG);
+            info.put("fake", fakeTag.getBoolean("isFake"));
+        }
+        if (root.contains(LOOP_TAG, Tag.TAG_COMPOUND)) {
+            CompoundTag loopTag = root.getCompound(LOOP_TAG);
+            info.put("loop", getLoop(pattern) != null);
+        }
+        return info;
+    }
     // endregion
 
     /**
@@ -396,5 +416,19 @@ public class NimblePatternTag {
         }
     }
 
-
+    /**
+     * Returns seed reservations keyed by loop ID, allowing callers to deduplicate a whole chain.
+     */
+    public static Map<UUID, Map<AEKey, Long>> removeLoopTag(ItemStack pattern) {
+        var data = getLoop(pattern);
+        if (data == null) {
+            throw new IllegalArgumentException("Invalid loop metadata");
+        }
+        var root = pattern.getTagElement(ROOT);
+        root.remove(LOOP_TAG);
+        if (root.isEmpty()) {
+            pattern.removeTagKey(ROOT);
+        }
+        return Map.of(data.loopId(), Map.of(data.entry().what(), data.seedAmount()));
+    }
 }

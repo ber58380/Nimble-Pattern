@@ -33,6 +33,7 @@ import com.ber.nimblePattern.network.PatternSyncCompletePacket;
 import com.ber.nimblePattern.parts.PatternTagLogic;
 import com.ber.nimblePattern.parts.TagMode;
 import com.ber.nimblePattern.pattern.NimblePatternTag;
+import com.ber.nimblePattern.pattern.loop.LoopPatternClearPlan;
 import com.ber.nimblePattern.pattern.loop.LoopPatternParser;
 import com.ber.nimblePattern.pattern.upgrade.PatternInventorySnapshots;
 import it.unimi.dsi.fastutil.ints.Int2ObjectArrayMap;
@@ -55,6 +56,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.IdentityHashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 import static appeng.helpers.InventoryAction.PICKUP_OR_SET_DOWN;
@@ -128,6 +130,7 @@ public class PatternTagTermMenu extends AEBaseMenu {
         registerClientAction("applyCondition", this::applyUpgradeCondition);
         registerClientAction("clearCondition", this::clearUpgradeCondition);
         registerClientAction("applyLoop", this::applyLoop);
+        registerClientAction("clearLoop", this::clearLoop);
     }
 
     public RestrictedInputSlot[] getInputPatternSlots() {
@@ -388,6 +391,50 @@ public class PatternTagTermMenu extends AEBaseMenu {
             showLoopResults("amount_overflow");
             ;
         }
+    }
+
+    public void clearLoop() {
+        if (isClientSide()) {
+            sendClientAction("clearLoop");
+            return;
+        }
+        var cellStack = loopStorageCellSlot.getItem().copy();
+        if (!(cellStack.getItem() instanceof LoopStorageCellItem cell)) {
+            showLoopResults("missing_cell");
+            return;
+        }
+        var grid = getGrid();
+        if (grid == null) {
+            showLoopResults("missing_network");
+            return;
+        }
+        var patterns = new LinkedHashMap<Integer, ItemStack>();
+        for (int i = 0; i < inputPatternInv.size(); i++) {
+            if (!inputPatternInv.getStackInSlot(i).isEmpty()) {
+                patterns.put(i, inputPatternInv.getStackInSlot(i));
+            }
+        }
+        try {
+            var plan = LoopPatternClearPlan.prepare(patterns, cell.getCellId(cellStack));
+            boolean cleared = cell.clearConfiguredAmounts(cellStack, plan.seeds(),
+                    grid.getStorageService().getInventory(), getActionSource());
+            // Preserve the exact stock count even if actual insertion accepted only part of the materials.
+            loopStorageCellInv.setItemDirect(0, cellStack);
+            if (!cleared) {
+                showLoopResults("return_blocked");
+                return;
+            }
+            plan.patterns().forEach(inputPatternInv::setItemDirect);
+            showLoopResults("clear_success");
+        } catch (LoopPatternParser.ParseException e) {
+            showLoopResults(e.getReason());
+        } catch (ArithmeticException e) {
+            showLoopResults("amount_overflow");
+        } catch (IllegalArgumentException e) {
+            showLoopResults("invalid_cell_config");
+        }
+        loopInputSlot.set(ItemStack.EMPTY);
+        loopOutputSlot.set(ItemStack.EMPTY);
     }
 
     private void sendFullUpdate(@Nullable IGrid grid) {

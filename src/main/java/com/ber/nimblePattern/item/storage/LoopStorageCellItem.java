@@ -1,8 +1,11 @@
 package com.ber.nimblePattern.item.storage;
 
+import appeng.api.config.Actionable;
+import appeng.api.networking.security.IActionSource;
 import appeng.api.stacks.AEKey;
 import appeng.api.stacks.AEKeyType;
 import appeng.api.stacks.GenericStack;
+import appeng.api.storage.MEStorage;
 import appeng.core.AEConfig;
 import appeng.core.localization.Tooltips;
 import appeng.items.storage.StorageCellTooltipComponent;
@@ -94,10 +97,53 @@ public class LoopStorageCellItem extends Item implements ILoopStorageCellItem {
     }
 
     @Override
-    public void clearConfiguredAmounts(ItemStack stack) {
-        if (stack.getItem() == this && stack.hasTag()) {
-            stack.getOrCreateTag().remove(CONFIG_TAG);
+    public boolean clearConfiguredAmounts(ItemStack stack, Map<AEKey, Long> amounts, MEStorage storage, IActionSource source) {
+        if (stack.getItem() != this) {
+            throw new IllegalArgumentException("Wrong loop cell item");
         }
+        var configured = new LinkedHashMap<>(getConfiguredAmounts(stack));
+        var contents = new LinkedHashMap<>(readContents(stack));
+        var released = new LinkedHashMap<AEKey, Long>();
+        // Validate every deduction before modifying either the cell or the network.
+        for (var entry : amounts.entrySet()) {
+            var key = entry.getKey();
+            long amount = entry.getValue();
+            long previous = configured.getOrDefault(key, 0L);
+            if (!isValidKey(key) || amount <= 0 || previous < amount) {
+                throw new IllegalArgumentException("Invalid loop seed configuration deduction");
+            }
+            long target = previous - amount;
+            if (target == 0) {
+                configured.remove(key);
+            } else {
+                configured.put(key, target);
+            }
+            long excess = Math.max(0, contents.getOrDefault(key, 0L) - target);
+            if (excess > 0) {
+                released.put(key, excess);
+            }
+        }
+        for (var entry : released.entrySet()) {
+            if (storage.insert(entry.getKey(), entry.getValue(), Actionable.SIMULATE, source) != entry.getValue()) {
+                return false;
+            }
+        }
+        for (var entry : released.entrySet()) {
+            long inserted = storage.insert(entry.getKey(), entry.getValue(), Actionable.MODULATE, source);
+            // Actual inserts may share capacity or differ from simulation. Account for every transferred item,
+            // but keep the original configuration and pattern tags if the full transfer cannot complete.
+            if (inserted > 0) {
+                long remaining = contents.get(entry.getKey()) - inserted;
+                if (remaining == 0) contents.remove(entry.getKey());
+                else contents.put(entry.getKey(), remaining);
+                writeContents(stack, contents);
+            }
+            if (inserted != entry.getValue()) {
+                return false;
+            }
+        }
+        writeTag(stack, CONFIG_TAG, configured);
+        return true;
     }
     // endregion
 

@@ -11,6 +11,14 @@ public class ModEnUsLangProvider extends LanguageProvider {
 
     @Override
     protected void addTranslations() {
+        add("gui.nimble_pattern.pattern_tag_terminal.loop.clear_success", "Loop markings and their seed reservations cleared");
+        add("gui.nimble_pattern.pattern_tag_terminal.loop.wrong_cell", "Every selected loop must be bound to the inserted cell");
+        add("gui.nimble_pattern.pattern_tag_terminal.loop.incomplete_loop", "Insert every pattern in each selected loop before clearing");
+        add("gui.nimble_pattern.pattern_tag_terminal.loop.invalid_loop_data", "Invalid or inconsistent loop metadata");
+        add("gui.nimble_pattern.pattern_tag_terminal.loop.no_loop_patterns", "No loop patterns to clear");
+        add("gui.nimble_pattern.pattern_tag_terminal.loop.missing_network", "The terminal is not connected to an active network");
+        add("gui.nimble_pattern.pattern_tag_terminal.loop.invalid_cell_config", "The cell has insufficient or invalid seed reservations");
+        add("gui.nimble_pattern.pattern_tag_terminal.loop.return_blocked", "The network could not accept all released materials; markings and configuration were kept");
         add("toast.nimble_pattern.loop_seed_return_failed_title", "Loop seed could not be returned");
         add("toast.nimble_pattern.loop_seed_return_failed_content", "%s could not be returned. Please check the corresponding loop storage cell.");
         add("gui.nimble_pattern.pattern_tag_terminal.loop.success", "Loop patterns applied");
@@ -50,6 +58,7 @@ public class ModEnUsLangProvider extends LanguageProvider {
         add("toast.nimble_pattern.pattern_upgrade_title", "Upgrade of patterns are available");
         add("toast.nimble_pattern.pattern_ugprade_content", "%s obtained, %d related patterns are available for upgrade");
 
+        add("tooltip.nimble_pattern.loop_pattern", "Loop Pattern");
         add("item.nimble_pattern.loop_storage_cell_1k", "1k Loop Storage Cell");
         add("item.nimble_pattern.loop_storage_cell_4k", "4k Loop Storage Cell");
         add("item.nimble_pattern.loop_storage_cell_16k", "16k Loop Storage Cell");

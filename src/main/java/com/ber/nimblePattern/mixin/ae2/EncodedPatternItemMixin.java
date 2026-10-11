@@ -21,8 +21,12 @@ import java.util.List;
 public abstract class EncodedPatternItemMixin {
     @Inject(method = "appendHoverText", at = @At("TAIL"))
     private void addUpdateInfo(ItemStack stack, Level level, List<Component> lines, TooltipFlag advancedTooltips, CallbackInfo ci) {
-        if (NimblePatternTag.getFake(stack)) {
+        var info = NimblePatternTag.getInfo(stack);
+        if (info.get("fake")) {
             lines.add(Component.translatable("tooltip.nimble_pattern.fake_pattern").withStyle(ChatFormatting.AQUA));
+        }
+        if (info.get("loop")) {
+            lines.add(Component.translatable("tooltip.nimble_pattern.loop_pattern").withStyle(ChatFormatting.AQUA));
         }
 
         ResourceLocation condition = NimblePatternTag.getCondition(stack);
@@ -35,11 +39,11 @@ public abstract class EncodedPatternItemMixin {
         } else if (ForgeRegistries.FLUIDS.containsKey(condition)) {
             name = ForgeRegistries.FLUIDS.getValue(condition).getFluidType().getDescription().copy();
         }
-        Component conditionLine = Component.translatable("tooltip.nimble_pattern.condition", name != null ? name : Component.literal(condition.toString())).withStyle(ChatFormatting.GRAY);
+        Component conditionLine = Component.translatable("tooltip.nimble_pattern.condition", name != null ? name : Component.literal(condition.toString())).withStyle(ChatFormatting.LIGHT_PURPLE);
         lines.add(conditionLine);
 
         UpgradeState state = NimblePatternTag.getStatus(stack);
-        Component stateLine = Component.translatable("tooltip.nimble_pattern.state." + state.name()).withStyle(ChatFormatting.GRAY);
+        Component stateLine = Component.translatable("tooltip.nimble_pattern.state." + state.name()).withStyle(ChatFormatting.LIGHT_PURPLE);
         lines.add(stateLine);
     }
 }

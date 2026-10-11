@@ -11,6 +11,14 @@ public class ModZhCnLangProvider extends LanguageProvider {
 
     @Override
     protected void addTranslations() {
+        add("gui.nimble_pattern.pattern_tag_terminal.loop.clear_success", "循环标记及对应种子配置已清除");
+        add("gui.nimble_pattern.pattern_tag_terminal.loop.wrong_cell", "样板绑定的循环存储元件与放入的元件不一致");
+        add("gui.nimble_pattern.pattern_tag_terminal.loop.incomplete_loop", "请放入同一循环的全部样板后再清理");
+        add("gui.nimble_pattern.pattern_tag_terminal.loop.invalid_loop_data", "循环数据无效或同组样板记录不一致");
+        add("gui.nimble_pattern.pattern_tag_terminal.loop.no_loop_patterns", "没有可清理的循环样板");
+        add("gui.nimble_pattern.pattern_tag_terminal.loop.missing_network", "终端未连接到可用的网络");
+        add("gui.nimble_pattern.pattern_tag_terminal.loop.invalid_cell_config", "循环元件的种子配置不足或无效，无法清理");
+        add("gui.nimble_pattern.pattern_tag_terminal.loop.return_blocked", "网络无法接收全部退回材料，未清除循环标记和配置");
         add("toast.nimble_pattern.loop_seed_return_failed_title", "循环样板启动材料无法放回");
         add("toast.nimble_pattern.loop_seed_return_failed_content", "%s无法放回，请检查相应的循环存储元件。");
         add("gui.nimble_pattern.pattern_tag_terminal.loop.success", "循环样板应用成功");
@@ -50,6 +58,7 @@ public class ModZhCnLangProvider extends LanguageProvider {
         add("toast.nimble_pattern.pattern_upgrade_title", "样板可更新");
         add("toast.nimble_pattern.pattern_ugprade_content", "%s已获得，%d个相关样板可更新");
 
+        add("tooltip.nimble_pattern.loop_pattern", "循环样板");
         add("item.nimble_pattern.loop_storage_cell_1k", "1k 循环存储元件");
         add("item.nimble_pattern.loop_storage_cell_4k", "4k 循环存储元件");
         add("item.nimble_pattern.loop_storage_cell_16k", "16k 循环存储元件");
