@@ -1,0 +1,46 @@
+{
+  "$schema": "schema.json",
+  "includes": [
+    "common/common.json"
+  ],
+  "background": {
+    "texture": "nimble_pattern:textures/guis/dialog_box.png",
+    "srcRect": [
+      0,
+      0,
+      219,
+      87
+    ]
+  },
+  "text": {
+    "dialog_title": {
+      "position": {
+        "left": 110,
+        "top": 10
+      },
+      "align": "CENTER"
+    },
+    "message": {
+      "position": {
+        "left": 110,
+        "top": 25
+      },
+      "align": "CENTER",
+      "maxWidth": 200
+    }
+  },
+  "slots": {
+    "MISSING_INGREDIENT": {
+      "left": 101,
+      "top": 35
+    }
+  },
+  "widgets": {
+    "confirm": {
+      "left": 84,
+      "bottom": 25,
+      "width": 50,
+      "height": 20
+    }
+  }
+}

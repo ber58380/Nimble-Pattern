@@ -11,35 +11,6 @@ public class ModEnUsLangProvider extends LanguageProvider {
 
     @Override
     protected void addTranslations() {
-        add("gui.nimble_pattern.pattern_tag_terminal.loop.clear_success", "Loop markings and their seed reservations cleared");
-        add("gui.nimble_pattern.pattern_tag_terminal.loop.wrong_cell", "Every selected loop must be bound to the inserted cell");
-        add("gui.nimble_pattern.pattern_tag_terminal.loop.incomplete_loop", "Insert every pattern in each selected loop before clearing");
-        add("gui.nimble_pattern.pattern_tag_terminal.loop.invalid_loop_data", "Invalid or inconsistent loop metadata");
-        add("gui.nimble_pattern.pattern_tag_terminal.loop.no_loop_patterns", "No loop patterns to clear");
-        add("gui.nimble_pattern.pattern_tag_terminal.loop.missing_network", "The terminal is not connected to an active network");
-        add("gui.nimble_pattern.pattern_tag_terminal.loop.invalid_cell_config", "The cell has insufficient or invalid seed reservations");
-        add("gui.nimble_pattern.pattern_tag_terminal.loop.return_blocked", "The network could not accept all released materials; markings and configuration were kept");
-        add("toast.nimble_pattern.loop_seed_return_failed_title", "Loop seed could not be returned");
-        add("toast.nimble_pattern.loop_seed_return_failed_content", "%s could not be returned. Please check the corresponding loop storage cell.");
-        add("gui.nimble_pattern.pattern_tag_terminal.loop.success", "Loop patterns applied");
-        add("gui.nimble_pattern.pattern_tag_terminal.loop.missing_cell", "Insert a loop storage cell");
-        add("gui.nimble_pattern.pattern_tag_terminal.loop.missing_endpoints", "Mark both the loop input and output");
-        add("gui.nimble_pattern.pattern_tag_terminal.loop.processing_only", "The loop can only contain processing patterns");
-        add("gui.nimble_pattern.pattern_tag_terminal.loop.too_few_patterns", "A loop requires at least two patterns");
-        add("gui.nimble_pattern.pattern_tag_terminal.loop.missing_primary_output", "A pattern has no primary output");
-        add("gui.nimble_pattern.pattern_tag_terminal.loop.endpoints_not_outputs", "The marked endpoints must be primary pattern outputs");
-        add("gui.nimble_pattern.pattern_tag_terminal.loop.missing_input", "A pattern has no usable primary input");
-        add("gui.nimble_pattern.pattern_tag_terminal.loop.ambiguous_path", "More than one pattern consumes the same loop material");
-        add("gui.nimble_pattern.pattern_tag_terminal.loop.broken_path", "The selected patterns do not form a continuous loop");
-        add("gui.nimble_pattern.pattern_tag_terminal.loop.unbalanced_intermediate", "Adjacent patterns use different intermediate amounts");
-        add("gui.nimble_pattern.pattern_tag_terminal.loop.unused_patterns", "Some selected patterns are outside the marked loop");
-        add("gui.nimble_pattern.pattern_tag_terminal.loop.not_closed", "The selected patterns do not return to the loop input");
-        add("gui.nimble_pattern.pattern_tag_terminal.loop.wrong_exit", "The marked output is not directly before the loop closes");
-        add("gui.nimble_pattern.pattern_tag_terminal.loop.no_net_output", "The loop does not produce a net gain of its input");
-        add("gui.nimble_pattern.pattern_tag_terminal.loop.cell_capacity", "The loop storage cell cannot reserve the required input");
-        add("gui.nimble_pattern.pattern_tag_terminal.loop.amount_overflow", "A pattern amount is too large");
-        add("toast.nimble_pattern.loop_seed_lost_title", "Loop Pattern Seed Lost");
-        add("toast.nimble_pattern.loop_seed_lost_content", "%s was lost. Refill the loop storage cell promptly.");
         add("itemGroup.nimble_pattern_tab", "Nimble Pattern");
 
         add("item.nimble_pattern.pattern_tag_terminal", "Pattern Tag Terminal");
@@ -64,5 +35,37 @@ public class ModEnUsLangProvider extends LanguageProvider {
         add("item.nimble_pattern.loop_storage_cell_16k", "16k Loop Storage Cell");
         add("item.nimble_pattern.loop_storage_cell_64k", "64k Loop Storage Cell");
         add("item.nimble_pattern.loop_storage_cell_256k", "256k Loop Storage Cell");
+        // Failure information of tagging loop patterns
+        add("gui.nimble_pattern.tag_loop_pattern_failure", "Failure to tag loop patterns");
+        add("gui.nimble_pattern.missing_loop_storage_cell", "Miss a loop storage cell");
+        add("gui.nimble_pattern.loop_storage_cell_not_enough_capacity", "The loop storage cell doesn't have enough capacity");
+        add("gui.nimble_pattern.loop_amount_overflow", "The calculation of loop patterns is overflow");
+        add("gui.nimble_pattern.missing_network", "The terminal is not connected to an active network");
+        add("gui.nimble_pattern.return_seed_failure", "Fail to return loop seeds to the network");
+        add("gui.nimble_pattern.wrong_loop_storage_cell", "Wrong loop storage cell");
+        add("gui.nimble_pattern.invalid_loop_data", "Invalid or inconsistent loop metadata");
+        add("gui.nimble_pattern.no_loop_patterns", "No loop patterns");
+        add("gui.nimble_pattern.incomplete_loop", "Insert every pattern in the selected loop before clearing");
+        add("gui.nimble_pattern.missing_input", "A pattern has no usable primary input");
+        add("gui.nimble_pattern.missing_endpoints", "Mark both the loop input and output");
+        add("gui.nimble_pattern.processing_only", "Only support processing patterns");
+        add("gui.nimble_pattern.missing_primary_output", "A pattern has no primary output");
+        add("gui.nimble_pattern.too_few_patterns", "A loop requires at least two patterns");
+        add("gui.nimble_pattern.endpoints_not_outputs", "The marked endpoints must be primary pattern outputs");
+        add("gui.nimble_pattern.ambiguous_path", "Fail to find the loop path of patterns");
+        add("gui.nimble_pattern.broken_path", "The selected patterns do not form a continuous loop");
+        add("gui.nimble_pattern.unbalanced_intermediate", "Adjacent patterns use different intermediate amounts");
+        add("gui.nimble_pattern.unused_patterns", "There are extra patterns not be used");
+        add("gui.nimble_pattern.not_closed", "The selected patterns do not return to the loop input");
+        add("gui.nimble_pattern.wrong_exit", "The marked output is not directly before the loop closes");
+        add("gui.nimble_pattern.no_net_output", "The loop does not have net outputs");
+        // Successful information of tagging loop patterns
+        add("gui.nimble_pattern.tag_loop_pattern_success", "Success to tag loop patterns");
+        // Crafting information of loop patterns
+        add("toast.nimble_pattern.loop_seed_return_failed_title", "Loop seed could not be returned");
+        add("toast.nimble_pattern.loop_seed_return_failed_content", "%s could not be returned. Please check the corresponding loop storage cell.");
+        add("toast.nimble_pattern.loop_seed_lost_title", "Loop Pattern Seed Lost");
+        add("toast.nimble_pattern.loop_seed_lost_content", "%s was lost. Refill the loop storage cell promptly.");
+
     }
 }

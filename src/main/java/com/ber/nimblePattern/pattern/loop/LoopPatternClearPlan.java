@@ -19,7 +19,7 @@ public record LoopPatternClearPlan(Map<Integer, ItemStack> patterns, Map<AEKey, 
                 throw new LoopPatternParser.ParseException("invalid_loop_data");
             }
             if (!data.storageCellId().equals(cellId)) {
-                throw new LoopPatternParser.ParseException("wrong_cell");
+                throw new LoopPatternParser.ParseException("wrong_loop_storage_cell");
             }
             var first = groups.putIfAbsent(data.loopId(), data);
             if (first != null) {

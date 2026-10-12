@@ -11,35 +11,6 @@ public class ModZhCnLangProvider extends LanguageProvider {
 
     @Override
     protected void addTranslations() {
-        add("gui.nimble_pattern.pattern_tag_terminal.loop.clear_success", "循环标记及对应种子配置已清除");
-        add("gui.nimble_pattern.pattern_tag_terminal.loop.wrong_cell", "样板绑定的循环存储元件与放入的元件不一致");
-        add("gui.nimble_pattern.pattern_tag_terminal.loop.incomplete_loop", "请放入同一循环的全部样板后再清理");
-        add("gui.nimble_pattern.pattern_tag_terminal.loop.invalid_loop_data", "循环数据无效或同组样板记录不一致");
-        add("gui.nimble_pattern.pattern_tag_terminal.loop.no_loop_patterns", "没有可清理的循环样板");
-        add("gui.nimble_pattern.pattern_tag_terminal.loop.missing_network", "终端未连接到可用的网络");
-        add("gui.nimble_pattern.pattern_tag_terminal.loop.invalid_cell_config", "循环元件的种子配置不足或无效，无法清理");
-        add("gui.nimble_pattern.pattern_tag_terminal.loop.return_blocked", "网络无法接收全部退回材料，未清除循环标记和配置");
-        add("toast.nimble_pattern.loop_seed_return_failed_title", "循环样板启动材料无法放回");
-        add("toast.nimble_pattern.loop_seed_return_failed_content", "%s无法放回，请检查相应的循环存储元件。");
-        add("gui.nimble_pattern.pattern_tag_terminal.loop.success", "循环样板应用成功");
-        add("gui.nimble_pattern.pattern_tag_terminal.loop.missing_cell", "请放入循环存储元件");
-        add("gui.nimble_pattern.pattern_tag_terminal.loop.missing_endpoints", "请同时标记循环入口和出口");
-        add("gui.nimble_pattern.pattern_tag_terminal.loop.processing_only", "循环产线只能包含处理样板");
-        add("gui.nimble_pattern.pattern_tag_terminal.loop.too_few_patterns", "循环产线至少需要两个样板");
-        add("gui.nimble_pattern.pattern_tag_terminal.loop.missing_primary_output", "存在没有主产物的样板");
-        add("gui.nimble_pattern.pattern_tag_terminal.loop.endpoints_not_outputs", "标记的入口和出口必须是样板的主产物");
-        add("gui.nimble_pattern.pattern_tag_terminal.loop.missing_input", "存在没有可用主输入的样板");
-        add("gui.nimble_pattern.pattern_tag_terminal.loop.ambiguous_path", "有多个样板消耗同一种循环物品，无法确定路径");
-        add("gui.nimble_pattern.pattern_tag_terminal.loop.broken_path", "所选样板无法组成连续的循环路径");
-        add("gui.nimble_pattern.pattern_tag_terminal.loop.unbalanced_intermediate", "相邻样板的中间产物数量不匹配");
-        add("gui.nimble_pattern.pattern_tag_terminal.loop.unused_patterns", "存在不属于所标记循环的样板");
-        add("gui.nimble_pattern.pattern_tag_terminal.loop.not_closed", "所选样板无法回到循环入口");
-        add("gui.nimble_pattern.pattern_tag_terminal.loop.wrong_exit", "标记的出口不是闭环前的主产物");
-        add("gui.nimble_pattern.pattern_tag_terminal.loop.no_net_output", "该循环产线不会净增循环入口物品");
-        add("gui.nimble_pattern.pattern_tag_terminal.loop.cell_capacity", "循环存储元件无法再预留所需的入口物品");
-        add("gui.nimble_pattern.pattern_tag_terminal.loop.amount_overflow", "样板中的数量过大");
-        add("toast.nimble_pattern.loop_seed_lost_title", "循环样板启动材料丢失");
-        add("toast.nimble_pattern.loop_seed_lost_content", "%s丢失，请及时补充循环存储元件。");
         add("itemGroup.nimble_pattern_tab", "灵巧样板");
 
         add("item.nimble_pattern.pattern_tag_terminal", "样板标记终端");
@@ -64,5 +35,36 @@ public class ModZhCnLangProvider extends LanguageProvider {
         add("item.nimble_pattern.loop_storage_cell_16k", "16k 循环存储元件");
         add("item.nimble_pattern.loop_storage_cell_64k", "64k 循环存储元件");
         add("item.nimble_pattern.loop_storage_cell_256k", "256k 循环存储元件");
+        // 标记循环样板的错误信息
+        add("gui.nimble_pattern.tag_loop_pattern_failure", "循环样板标记失败");
+        add("gui.nimble_pattern.missing_loop_storage_cell", "缺少循环存储元件");
+        add("gui.nimble_pattern.loop_storage_cell_not_enough_capacity", "循环存储元件容量不足");
+        add("gui.nimble_pattern.loop_amount_overflow", "循环样板数值计算溢出");
+        add("gui.nimble_pattern.missing_network", "终端未连接到可用的网络");
+        add("gui.nimble_pattern.return_seed_failure", "无法将循环种子放回网络");
+        add("gui.nimble_pattern.wrong_loop_storage_cell", "错误的循环存储元件");
+        add("gui.nimble_pattern.invalid_loop_data", "循环数据无效或同组样板记录不一致");
+        add("gui.nimble_pattern.no_loop_patterns", "没有循环样板");
+        add("gui.nimble_pattern.incomplete_loop", "请放入同一循环的全部样板后再清理");
+        add("gui.nimble_pattern.missing_input", "存在没有可用主输入的样板");
+        add("gui.nimble_pattern.missing_endpoints", "请同时标记循环的入口和出口");
+        add("gui.nimble_pattern.processing_only", "仅支持处理样板");
+        add("gui.nimble_pattern.missing_primary_output", "存在没有主产物的样板");
+        add("gui.nimble_pattern.too_few_patterns", "循环产线至少需要两个样板");
+        add("gui.nimble_pattern.endpoints_not_outputs", "标记的入口和出口必须是某个样板的主产物");
+        add("gui.nimble_pattern.ambiguous_path", "无法确定循环路径");
+        add("gui.nimble_pattern.broken_path", "所选样板无法组成连续的循环路径");
+        add("gui.nimble_pattern.unbalanced_intermediate", "相邻样板的中间产物数量不匹配");
+        add("gui.nimble_pattern.unused_patterns", "存在多余的未使用样板");
+        add("gui.nimble_pattern.not_closed", "所选样板无法回到循环入口");
+        add("gui.nimble_pattern.wrong_exit", "标记的出口不是闭环前的主产物");
+        add("gui.nimble_pattern.no_net_output", "该循环产线没有净产出");
+        // 标记循环样板成功的信息
+        add("gui.nimble_pattern.tag_loop_pattern_success", "循环样板标记成功");
+        // 循环样板的合成信息
+        add("toast.nimble_pattern.loop_seed_return_failed_title", "循环样板启动材料无法放回");
+        add("toast.nimble_pattern.loop_seed_return_failed_content", "%s无法放回，请检查相应的循环存储元件。");
+        add("toast.nimble_pattern.loop_seed_lost_title", "循环样板启动材料丢失");
+        add("toast.nimble_pattern.loop_seed_lost_content", "%s丢失，请及时补充循环存储元件。");
     }
 }

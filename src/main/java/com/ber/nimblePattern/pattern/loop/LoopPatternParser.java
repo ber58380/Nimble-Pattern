@@ -25,7 +25,7 @@ public final class LoopPatternParser {
             try {
                 amount = Math.multiplyExact(primaryInput.amount(), input.getMultiplier());
             } catch (ArithmeticException e) {
-                throw new ParseException("amount_overflow");
+                throw new ParseException("loop_amount_overflow");
             }
             result.merge(primaryInput.what(), amount, Math::addExact);
         }

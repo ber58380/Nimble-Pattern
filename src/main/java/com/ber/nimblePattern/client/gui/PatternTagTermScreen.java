@@ -19,6 +19,7 @@ import com.ber.nimblePattern.client.gui.panel.PatternLoopPanel;
 import com.ber.nimblePattern.client.gui.panel.PatternUpgradePanel;
 import com.ber.nimblePattern.client.gui.panel.TagModePanel;
 import com.ber.nimblePattern.client.gui.search.PatternSearch;
+import com.ber.nimblePattern.client.gui.widgets.DialogBox;
 import com.ber.nimblePattern.client.gui.widgets.PatternUpgradeSlot;
 import com.ber.nimblePattern.menu.PatternTagTermMenu;
 import com.ber.nimblePattern.parts.TagMode;
@@ -55,6 +56,8 @@ public class PatternTagTermScreen<C extends PatternTagTermMenu> extends AEBaseSc
     // ClearPacket starts a full synchronization batch. Full PatternPackets only
     // populate byId; PatternSyncCompletePacket rebuilds the expensive global view once.
     private boolean fullUpdateInProgress = false;
+
+    private long lastDialogRevision = 0;
 
     public PatternTagTermScreen(C menu, Inventory playerInventory, Component title, ScreenStyle style) {
         super(menu, playerInventory, title, style);
@@ -183,6 +186,18 @@ public class PatternTagTermScreen<C extends PatternTagTermMenu> extends AEBaseSc
                         pos.getY()));
             }
         }
+    }
+
+    @Override
+    public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTicks) {
+        // display the dialog box
+        if (menu.dialogRevision != lastDialogRevision) {
+            lastDialogRevision = menu.dialogRevision;
+            switchToScreen(new DialogBox<>(this, menu.dialogTitle, menu.dialogMessage));
+            return;
+        }
+        
+        super.render(guiGraphics, mouseX, mouseY, partialTicks);
     }
 
     @Override

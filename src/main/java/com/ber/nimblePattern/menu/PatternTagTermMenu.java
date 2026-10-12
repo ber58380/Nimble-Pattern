@@ -40,6 +40,7 @@ import it.unimi.dsi.fastutil.ints.Int2ObjectArrayMap;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
+import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
@@ -91,6 +92,15 @@ public class PatternTagTermMenu extends AEBaseMenu {
     @GuiSync(97)
     public TagMode mode;
     private long lastNetworkCheck = Long.MIN_VALUE;
+
+    @GuiSync(98)
+    public Component dialogTitle = Component.empty();
+    @GuiSync(99)
+    public Component dialogMessage = Component.empty();
+    @GuiSync(100)
+    public long dialogRevision = 0;
+    private static final Component LOOP_ERROR_TITLE = Component.translatable("gui.nimble_pattern.tag_loop_pattern_failure").withStyle(ChatFormatting.RED);
+    private static final Component LOOP_SUCCESS_TITLE = Component.translatable("gui.nimble_pattern.tag_loop_pattern_success").withStyle(ChatFormatting.DARK_GREEN);
 
     public PatternTagTermMenu(int id, Inventory ip, IPatternTagMenuHost host) {
         this(TYPE, id, ip, host, true);
@@ -334,9 +344,10 @@ public class PatternTagTermMenu extends AEBaseMenu {
         }
     }
 
-    private void showLoopResults(String result) {
-        getPlayer().displayClientMessage(
-                Component.translatable("gui.nimble_pattern.pattern_tag_terminal.loop." + result), false);
+    private void showDialogBox(Component title, Component message) {
+        this.dialogTitle = title;
+        this.dialogMessage = message;
+        this.dialogRevision++;
     }
 
     public void applyLoop() {
@@ -348,7 +359,7 @@ public class PatternTagTermMenu extends AEBaseMenu {
         var exit = GenericStack.fromItemStack(loopOutputSlot.getItem());
         var cellStack = loopStorageCellSlot.getItem();
         if (!(cellStack.getItem() instanceof LoopStorageCellItem cell)) {
-            showLoopResults("missing_cell");
+            showDialogBox(LOOP_ERROR_TITLE, Component.translatable("gui.nimble_pattern.missing_loop_storage_cell"));
             return;
         }
 
@@ -366,7 +377,7 @@ public class PatternTagTermMenu extends AEBaseMenu {
             var cellId = cell.getOrCreateCellId(cellStack);
             var loopChain = LoopPatternParser.parse(getPlayer().level(), patterns, entry, exit, cellId);
             if (!cell.canAddConfiguredAmount(cellStack, loopChain.entry(), loopChain.seedAmount())) {
-                showLoopResults("cell_capacity");
+                showDialogBox(LOOP_ERROR_TITLE, Component.translatable("gui.nimble_pattern.loop_storage_cell_not_enough_capacity"));
                 return;
             }
             for (int i = 0; i < loopChain.patterns().size(); i++) {
@@ -384,12 +395,11 @@ public class PatternTagTermMenu extends AEBaseMenu {
                     inputPatternInv.setItemDirect(terminalSlot, pattern);
                 }
             }
-            showLoopResults("success");
+            // TODO: 成功信息绘制
         } catch (LoopPatternParser.ParseException e) {
-            showLoopResults(e.getReason());
+            showDialogBox(LOOP_ERROR_TITLE, Component.translatable("gui.nimble_pattern." + e.getReason()));
         } catch (ArithmeticException e) {
-            showLoopResults("amount_overflow");
-            ;
+            showDialogBox(LOOP_ERROR_TITLE, Component.translatable("gui.nimble_pattern.loop_amount_overflow"));
         }
     }
 
@@ -400,12 +410,12 @@ public class PatternTagTermMenu extends AEBaseMenu {
         }
         var cellStack = loopStorageCellSlot.getItem().copy();
         if (!(cellStack.getItem() instanceof LoopStorageCellItem cell)) {
-            showLoopResults("missing_cell");
+            showDialogBox(LOOP_ERROR_TITLE, Component.translatable("gui.nimble_pattern.missing_loop_storage_cell"));
             return;
         }
         var grid = getGrid();
         if (grid == null) {
-            showLoopResults("missing_network");
+            showDialogBox(LOOP_ERROR_TITLE, Component.translatable("gui.nimble_pattern.missing_network"));
             return;
         }
         var patterns = new LinkedHashMap<Integer, ItemStack>();
@@ -421,17 +431,16 @@ public class PatternTagTermMenu extends AEBaseMenu {
             // Preserve the exact stock count even if actual insertion accepted only part of the materials.
             loopStorageCellInv.setItemDirect(0, cellStack);
             if (!cleared) {
-                showLoopResults("return_blocked");
+                showDialogBox(LOOP_ERROR_TITLE, Component.translatable("gui.nimble_pattern.return_seed_failure"));
                 return;
             }
             plan.patterns().forEach(inputPatternInv::setItemDirect);
-            showLoopResults("clear_success");
         } catch (LoopPatternParser.ParseException e) {
-            showLoopResults(e.getReason());
+            showDialogBox(LOOP_ERROR_TITLE, Component.translatable("gui.nimble_pattern." + e.getReason()));
         } catch (ArithmeticException e) {
-            showLoopResults("amount_overflow");
+            showDialogBox(LOOP_ERROR_TITLE, Component.translatable("gui.nimble_pattern.loop_amount_overflow"));
         } catch (IllegalArgumentException e) {
-            showLoopResults("invalid_cell_config");
+            showDialogBox(LOOP_ERROR_TITLE, Component.translatable("gui.nimble_pattern.wrong_loop_storage_cell"));
         }
         loopInputSlot.set(ItemStack.EMPTY);
         loopOutputSlot.set(ItemStack.EMPTY);
