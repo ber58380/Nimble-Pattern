@@ -22,6 +22,7 @@ import appeng.menu.slot.InaccessibleSlot;
 import appeng.menu.slot.RestrictedInputSlot;
 import appeng.parts.crafting.PatternProviderPart;
 import appeng.util.inv.AppEngInternalInventory;
+import com.ber.nimblePattern.client.gui.widgets.LoopDiagramData;
 import com.ber.nimblePattern.compat.extendedae.ExtendedAECompat;
 import com.ber.nimblePattern.helpers.IPatternTagMenuHost;
 import com.ber.nimblePattern.item.storage.LoopStorageCellItem;
@@ -98,6 +99,8 @@ public class PatternTagTermMenu extends AEBaseMenu {
     @GuiSync(99)
     public Component dialogMessage = Component.empty();
     @GuiSync(100)
+    public LoopDiagramData dialogLoopDiagram = LoopDiagramData.EMPTY;
+    @GuiSync(101)
     public long dialogRevision = 0;
     private static final Component LOOP_ERROR_TITLE = Component.translatable("gui.nimble_pattern.tag_loop_pattern_failure").withStyle(ChatFormatting.RED);
     private static final Component LOOP_SUCCESS_TITLE = Component.translatable("gui.nimble_pattern.tag_loop_pattern_success").withStyle(ChatFormatting.DARK_GREEN);
@@ -345,6 +348,7 @@ public class PatternTagTermMenu extends AEBaseMenu {
     }
 
     private void showDialogBox(Component title, Component message) {
+        this.dialogLoopDiagram = LoopDiagramData.EMPTY;
         this.dialogTitle = title;
         this.dialogMessage = message;
         this.dialogRevision++;
@@ -395,7 +399,8 @@ public class PatternTagTermMenu extends AEBaseMenu {
                     inputPatternInv.setItemDirect(terminalSlot, pattern);
                 }
             }
-            // TODO: 成功信息绘制
+            showDialogBox(LOOP_SUCCESS_TITLE, Component.empty());
+            this.dialogLoopDiagram = LoopDiagramData.transform(loopChain.metadata().get(0));
         } catch (LoopPatternParser.ParseException e) {
             showDialogBox(LOOP_ERROR_TITLE, Component.translatable("gui.nimble_pattern." + e.getReason()));
         } catch (ArithmeticException e) {

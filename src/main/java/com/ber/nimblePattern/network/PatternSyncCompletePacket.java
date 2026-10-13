@@ -1,7 +1,6 @@
 package com.ber.nimblePattern.network;
 
 import com.ber.nimblePattern.client.gui.PatternTagTermScreen;
-import net.minecraft.client.Minecraft;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraftforge.network.NetworkEvent;
 
@@ -20,7 +19,8 @@ public record PatternSyncCompletePacket() {
 
     public static void handle(PatternSyncCompletePacket msg, Supplier<NetworkEvent.Context> ctx) {
         ctx.get().enqueueWork(() -> {
-            if (Minecraft.getInstance().screen instanceof PatternTagTermScreen screen) {
+            var screen = PatternTagTermScreen.getOpenTerminal();
+            if (screen != null) {
                 screen.finishFullUpdate();
             }
         });

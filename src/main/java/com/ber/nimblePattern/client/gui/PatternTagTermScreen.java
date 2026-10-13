@@ -3,6 +3,7 @@ package com.ber.nimblePattern.client.gui;
 import appeng.api.config.Settings;
 import appeng.client.Point;
 import appeng.client.gui.AEBaseScreen;
+import appeng.client.gui.AESubScreen;
 import appeng.client.gui.style.Blitter;
 import appeng.client.gui.style.ScreenStyle;
 import appeng.client.gui.style.TerminalStyle;
@@ -25,12 +26,14 @@ import com.ber.nimblePattern.menu.PatternTagTermMenu;
 import com.ber.nimblePattern.parts.TagMode;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.ClickType;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 
@@ -56,6 +59,7 @@ public class PatternTagTermScreen<C extends PatternTagTermMenu> extends AEBaseSc
     // ClearPacket starts a full synchronization batch. Full PatternPackets only
     // populate byId; PatternSyncCompletePacket rebuilds the expensive global view once.
     private boolean fullUpdateInProgress = false;
+    private boolean patternViewDirty = false;
 
     private long lastDialogRevision = 0;
 
@@ -101,12 +105,35 @@ public class PatternTagTermScreen<C extends PatternTagTermMenu> extends AEBaseSc
         }
     }
 
+    /**
+     * The screen has a dialog box as subscreen. When it opens, the screen should still receive
+     * packets, but the update should be delayed and executed when subscreen closed. Otherwise,
+     * the update would lead slots rendering when dialog box is opened.
+     */
+    @Nullable
+    public static PatternTagTermScreen<?> getOpenTerminal() {
+        var minecraft = Minecraft.getInstance();
+        var current = minecraft.screen;
+        while (current instanceof AESubScreen<?, ?> subScreen) {
+            current = subScreen.getParent();
+        }
+        if (current instanceof PatternTagTermScreen<?> terminal
+                && minecraft.player != null
+                && minecraft.player.containerMenu == terminal.getMenu()) {
+            return terminal;
+        }
+        return null;
+    }
+
     public void clear() {
         fullUpdateInProgress = true;
         byId.clear();
         patterns.clear();
-        menu.slots.removeIf(slot -> slot instanceof PatternUpgradeSlot);
-        updateScrollbar();
+        patternViewDirty = true;
+        if (Minecraft.getInstance().screen == this) {
+            menu.slots.removeIf(slot -> slot instanceof PatternUpgradeSlot);
+            updateScrollbar();
+        }
     }
 
     public void finishFullUpdate() {
@@ -115,6 +142,11 @@ public class PatternTagTermScreen<C extends PatternTagTermMenu> extends AEBaseSc
     }
 
     private void rebuildPatternView() {
+        patternViewDirty = true;
+        if (fullUpdateInProgress || Minecraft.getInstance().screen != this) {
+            return;
+        }
+        patternViewDirty = false;
         updatePatterns();
         updateScrollbar();
         updateSlots();
@@ -127,6 +159,14 @@ public class PatternTagTermScreen<C extends PatternTagTermMenu> extends AEBaseSc
         this.imageHeight = style.getScreenHeight(rows);
         super.init();
         this.updateScrollbar();
+    }
+
+    @Override
+    protected <P extends AEBaseScreen<C>> void onReturnFromSubScreen(AESubScreen<C, P> subScreen) {
+        super.onReturnFromSubScreen(subScreen);
+        if (patternViewDirty && !fullUpdateInProgress) {
+            rebuildPatternView();
+        }
     }
 
     private void reinitialize() {
@@ -193,10 +233,10 @@ public class PatternTagTermScreen<C extends PatternTagTermMenu> extends AEBaseSc
         // display the dialog box
         if (menu.dialogRevision != lastDialogRevision) {
             lastDialogRevision = menu.dialogRevision;
-            switchToScreen(new DialogBox<>(this, menu.dialogTitle, menu.dialogMessage));
+            switchToScreen(new DialogBox<>(this, menu.dialogTitle, menu.dialogMessage, menu.dialogLoopDiagram));
             return;
         }
-        
+
         super.render(guiGraphics, mouseX, mouseY, partialTicks);
     }
 
