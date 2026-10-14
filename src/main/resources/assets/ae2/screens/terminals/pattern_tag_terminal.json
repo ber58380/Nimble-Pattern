@@ -4,7 +4,8 @@
     "../common/common.json",
     "../common/player_inventory.json",
     "tag/upgrade.json",
-    "tag/loop.json"
+    "tag/loop.json",
+    "tag/tool.json"
   ],
   "slots": {
     "INPUT_PATTERN": {
@@ -27,6 +28,10 @@
     "LOOP_STORAGE_CELL": {
       "left": 148,
       "bottom": 157
+    },
+    "TOOL_INPUT": {
+      "left": 98,
+      "bottom": 121
     }
   },
   "terminalStyle": {
@@ -100,11 +105,21 @@
       "width": 22,
       "height": 22
     },
+    "modeTabButton2": {
+      "left": 175,
+      "bottom": 132,
+      "width": 22,
+      "height": 22
+    },
     "modePanel0": {
       "left": 88,
       "bottom": 166
     },
     "modePanel1": {
+      "left": 88,
+      "bottom": 166
+    },
+    "modePanel2": {
       "left": 88,
       "bottom": 166
     },

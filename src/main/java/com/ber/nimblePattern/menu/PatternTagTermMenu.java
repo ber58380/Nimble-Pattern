@@ -8,6 +8,7 @@ import appeng.api.networking.security.IActionHost;
 import appeng.api.stacks.AEFluidKey;
 import appeng.api.stacks.AEItemKey;
 import appeng.api.stacks.GenericStack;
+import appeng.crafting.pattern.AECraftingPattern;
 import appeng.helpers.InventoryAction;
 import appeng.helpers.patternprovider.PatternContainer;
 import appeng.helpers.patternprovider.PatternProviderLogicHost;
@@ -34,6 +35,7 @@ import com.ber.nimblePattern.network.PatternSyncCompletePacket;
 import com.ber.nimblePattern.parts.PatternTagLogic;
 import com.ber.nimblePattern.parts.TagMode;
 import com.ber.nimblePattern.pattern.NimblePatternTag;
+import com.ber.nimblePattern.pattern.PatternValidation;
 import com.ber.nimblePattern.pattern.loop.LoopPatternClearPlan;
 import com.ber.nimblePattern.pattern.loop.LoopPatternParser;
 import com.ber.nimblePattern.pattern.upgrade.PatternInventorySnapshots;
@@ -56,10 +58,7 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraftforge.network.PacketDistributor;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
-import java.util.IdentityHashMap;
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.*;
 
 import static appeng.helpers.InventoryAction.PICKUP_OR_SET_DOWN;
 import static appeng.helpers.InventoryAction.SPLIT_OR_PLACE_SINGLE;
@@ -84,11 +83,14 @@ public class PatternTagTermMenu extends AEBaseMenu {
     private final InternalInventory conditionItemInv;
     private final InternalInventory loopEndpointInv;
     private final InternalInventory loopStorageCellInv;
+    // TODO: FakeSlot对于流体会显示数字
+    private final InternalInventory toolInputInv;
     private final RestrictedInputSlot[] inputPatternSlots = new RestrictedInputSlot[INPUT_PATTERN_SLOTS];
     private final FakeSlot conditionItemSlot;
     private final FakeSlot loopInputSlot;
     private final FakeSlot loopOutputSlot;
     private final LoopStorageCellSlot loopStorageCellSlot;
+    private final FakeSlot toolInputSlot;
 
     @GuiSync(97)
     public TagMode mode;
@@ -104,6 +106,7 @@ public class PatternTagTermMenu extends AEBaseMenu {
     public long dialogRevision = 0;
     private static final Component LOOP_ERROR_TITLE = Component.translatable("gui.nimble_pattern.tag_loop_pattern_failure").withStyle(ChatFormatting.RED);
     private static final Component LOOP_SUCCESS_TITLE = Component.translatable("gui.nimble_pattern.tag_loop_pattern_success").withStyle(ChatFormatting.DARK_GREEN);
+    private static final Component TOOL_ERROR_TITLE = Component.translatable("gui.nimble_pattern.tag_tool_failure").withStyle(ChatFormatting.RED);
 
     public PatternTagTermMenu(int id, Inventory ip, IPatternTagMenuHost host) {
         this(TYPE, id, ip, host, true);
@@ -135,6 +138,10 @@ public class PatternTagTermMenu extends AEBaseMenu {
         this.addSlot(loopInputSlot, LOOP_INPUT);
         this.addSlot(loopOutputSlot, LOOP_OUTPUT);
         this.addSlot(loopStorageCellSlot, LOOP_STORAGE_CELL);
+        // tool panel
+        this.toolInputInv = tagLogic.getToolInputInv();
+        this.toolInputSlot = new FakeSlot(toolInputInv, 0);
+        this.addSlot(toolInputSlot, TOOL_INPUT);
 
         if (bindInventory) {
             this.createPlayerInventorySlots(ip);
@@ -144,6 +151,8 @@ public class PatternTagTermMenu extends AEBaseMenu {
         registerClientAction("clearCondition", this::clearUpgradeCondition);
         registerClientAction("applyLoop", this::applyLoop);
         registerClientAction("clearLoop", this::clearLoop);
+        registerClientAction("applyTool", this::applyTool);
+        registerClientAction("clearTool", this::clearTool);
     }
 
     public RestrictedInputSlot[] getInputPatternSlots() {
@@ -152,6 +161,10 @@ public class PatternTagTermMenu extends AEBaseMenu {
 
     public FakeSlot getConditionItemSlot() {
         return conditionItemSlot;
+    }
+
+    public FakeSlot getToolInputSlot() {
+        return toolInputSlot;
     }
 
     public TagMode getMode() {
@@ -449,6 +462,69 @@ public class PatternTagTermMenu extends AEBaseMenu {
         }
         loopInputSlot.set(ItemStack.EMPTY);
         loopOutputSlot.set(ItemStack.EMPTY);
+    }
+
+    public void applyTool() {
+        if (isClientSide()) {
+            sendClientAction("applyTool");
+            return;
+        }
+        var tool = GenericStack.fromItemStack(toolInputSlot.getItem());
+        if (tool == null || !(tool.what() instanceof AEItemKey key)) {
+            showDialogBox(TOOL_ERROR_TITLE, Component.translatable("gui.nimble_pattern.no_tool"));
+            return;
+        }
+        for (int i = 0; i < inputPatternInv.size(); i++) {
+            var stack = inputPatternInv.getStackInSlot(i).copy();
+            if (stack.isEmpty()) {
+                continue;
+            }
+            var decoded = PatternDetailsHelper.decodePattern(stack, getPlayer().level());
+            if (!(decoded instanceof AECraftingPattern pattern)) {
+                showDialogBox(TOOL_ERROR_TITLE, Component.translatable("gui.nimble_pattern.crafting_only"));
+                return;
+            }
+
+            List<GenericStack> tools;
+            try {
+                tools = PatternValidation.isToolPattern(pattern, key);
+            } catch (IllegalArgumentException e) {
+                showDialogBox(TOOL_ERROR_TITLE, Component.translatable("gui.nimble_pattern." + e.getMessage()));
+                return;
+            }
+            if (!tools.isEmpty()) {
+                NimblePatternTag.tagTool(stack, tools);
+                if (NimblePatternTag.pushPatternBack(stack, getPlayer().getServer())) {
+                    inputPatternInv.setItemDirect(i, ItemStack.EMPTY);
+                } else {
+                    inputPatternInv.setItemDirect(i, stack);
+                }
+            }
+        }
+    }
+
+    public void clearTool() {
+        if (isClientSide()) {
+            sendClientAction("clearTool");
+            return;
+        }
+        toolInputSlot.set(ItemStack.EMPTY);
+        for (int i = 0; i < inputPatternInv.size(); i++) {
+            var pattern = inputPatternInv.getStackInSlot(i).copy();
+            if (pattern.isEmpty()) {
+                continue;
+            }
+            NimblePatternTag.removeToolTag(pattern);
+            inputPatternInv.setItemDirect(i, pattern);
+        }
+    }
+
+    private void showToolResult(String reason, boolean success) {
+        showDialogBox(Component.translatable("gui.nimble_pattern.pattern_tag_terminal.tool."
+                                + (success ? "success" : "failure"))
+                        .withStyle(success ? ChatFormatting.DARK_GREEN : ChatFormatting.RED),
+                success ? Component.empty() : Component.translatable(
+                        "gui.nimble_pattern.pattern_tag_terminal.tool." + reason));
     }
 
     private void sendFullUpdate(@Nullable IGrid grid) {

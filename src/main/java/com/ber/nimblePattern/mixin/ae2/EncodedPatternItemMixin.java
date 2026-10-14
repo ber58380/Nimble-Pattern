@@ -1,5 +1,6 @@
 package com.ber.nimblePattern.mixin.ae2;
 
+import appeng.api.stacks.AEItemKey;
 import appeng.crafting.pattern.EncodedPatternItem;
 import com.ber.nimblePattern.pattern.NimblePatternTag;
 import com.ber.nimblePattern.pattern.upgrade.UpgradeState;
@@ -27,6 +28,15 @@ public abstract class EncodedPatternItemMixin {
         }
         if (info.get("loop")) {
             lines.add(Component.translatable("tooltip.nimble_pattern.loop_pattern").withStyle(ChatFormatting.AQUA));
+        }
+        var tools = NimblePatternTag.getTool(stack);
+        if (!tools.isEmpty()) {
+            lines.add(Component.translatable("tooltip.nimble_pattern.tool_pattern").withStyle(ChatFormatting.AQUA));
+            for (var tool : NimblePatternTag.getTool(stack)) {
+                lines.add(Component.literal("  " + tool.amount() + " × ")
+                        .append(((AEItemKey) tool.what()).toStack().getHoverName())
+                        .withStyle(ChatFormatting.GRAY));
+            }
         }
 
         ResourceLocation condition = NimblePatternTag.getCondition(stack);

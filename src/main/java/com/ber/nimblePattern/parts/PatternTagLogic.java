@@ -16,11 +16,13 @@ public class PatternTagLogic implements InternalInventoryHost {
     public static final int CONDITION_ITEM_SLOTS = 1;
     public static final int LOOP_ENDPOINT_SLOTS = 2;
     public static final int LOOP_STORAGE_CELL_SLOTS = 1;
+    public static final int TOOL_INPUT_SLOTS = 1;
 
     private final AppEngInternalInventory inputPatternInv = new AppEngInternalInventory(this, INPUT_PATTERN_SLOTS);
     private final AppEngInternalInventory conditionItemInv = new AppEngInternalInventory(this, CONDITION_ITEM_SLOTS);
     private final AppEngInternalInventory loopEndpointInv = new AppEngInternalInventory(this, LOOP_ENDPOINT_SLOTS);
     private final AppEngInternalInventory loopStorageCellInv = new AppEngInternalInventory(this, LOOP_STORAGE_CELL_SLOTS);
+    private final AppEngInternalInventory toolInputInv = new AppEngInternalInventory(this, TOOL_INPUT_SLOTS);
 
     private TagMode mode = TagMode.UPGRADE;
 
@@ -44,6 +46,10 @@ public class PatternTagLogic implements InternalInventoryHost {
 
     public AppEngInternalInventory getLoopStorageCellInv() {
         return loopStorageCellInv;
+    }
+
+    public AppEngInternalInventory getToolInputInv() {
+        return toolInputInv;
     }
 
     public TagMode getMode() {
@@ -86,6 +92,7 @@ public class PatternTagLogic implements InternalInventoryHost {
             conditionItemInv.readFromNBT(data, "conditionItem");
             loopEndpointInv.readFromNBT(data, "loopEndpoints");
             loopStorageCellInv.readFromNBT(data, "loopStorageCell");
+            toolInputInv.readFromNBT(data, "toolInput");
         } finally {
             isLoading = false;
         }
@@ -97,5 +104,6 @@ public class PatternTagLogic implements InternalInventoryHost {
         conditionItemInv.writeToNBT(data, "conditionItem");
         loopEndpointInv.writeToNBT(data, "loopEndpoints");
         loopStorageCellInv.writeToNBT(data, "loopStorageCell");
+        toolInputInv.writeToNBT(data, "toolInput");
     }
 }

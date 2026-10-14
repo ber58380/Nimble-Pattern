@@ -40,6 +40,8 @@ public class NimblePatternTag {
     private static final String FUZZY_TAG = "fuzzy";
     // the loop tag includes: loopId, cellId, index, size, entry, exit, seed, netOutput, externalInputs, outputs
     private static final String LOOP_TAG = "loop";
+    // the tool tag includes: tools
+    private static final String TOOL_TAG = "tool";
 
     public static void removeTag(ItemStack pattern) {
         CompoundTag root = pattern.getTagElement(ROOT);
@@ -193,6 +195,7 @@ public class NimblePatternTag {
         tagPattern(pattern, SOURCE_TAG, sourceTag);
     }
 
+    // TODO: 存ID改为存GenericStack可能更好
     public static void tagUpgrade(ItemStack pattern, ResourceLocation condition) {
         CompoundTag upgradeTag = new CompoundTag();
         upgradeTag.putString("condition", condition.toString());
@@ -236,6 +239,16 @@ public class NimblePatternTag {
         loopTag.put("externalInputs", writeGenericStacks(data.externalInputs()));
         loopTag.put("outputs", writeGenericStacks(data.outputs()));
         tagPattern(pattern, LOOP_TAG, loopTag);
+    }
+
+    public static void tagTool(ItemStack pattern, List<GenericStack> tools) {
+        if (tools.isEmpty()) {
+            removeToolTag(pattern);
+            return;
+        }
+        CompoundTag toolTag = new CompoundTag();
+        toolTag.put("tools", writeGenericStacks(tools));
+        tagPattern(pattern, TOOL_TAG, toolTag);
     }
     // endregion
 
@@ -369,11 +382,22 @@ public class NimblePatternTag {
         }
     }
 
+    public static List<GenericStack> getTool(ItemStack pattern) {
+        CompoundTag root = pattern.getTagElement(ROOT);
+        if (root == null || !root.contains(TOOL_TAG, Tag.TAG_COMPOUND)) {
+            return List.of();
+        }
+        CompoundTag toolTag = root.getCompound(TOOL_TAG);
+        return readGenericStacks(toolTag.getList("tools", Tag.TAG_COMPOUND));
+    }
+
     /**
      * This function is used to overview all crafting modes of the pattern.
      */
     public static Map<String, Boolean> getInfo(ItemStack pattern) {
-        Map<String, Boolean> info = new HashMap<>(Map.of("fake", false, "loop", false));
+        Map<String, Boolean> info = new HashMap<>(Map.of(
+                "fake", false,
+                "loop", false));
         CompoundTag root = pattern.getTagElement(ROOT);
         if (root == null) {
             return info;
@@ -430,5 +454,16 @@ public class NimblePatternTag {
             pattern.removeTagKey(ROOT);
         }
         return Map.of(data.loopId(), Map.of(data.entry().what(), data.seedAmount()));
+    }
+
+    public static void removeToolTag(ItemStack pattern) {
+        var root = pattern.getTagElement(ROOT);
+        if (root == null) {
+            return;
+        }
+        root.remove(TOOL_TAG);
+        if (root.isEmpty()) {
+            pattern.removeTagKey(ROOT);
+        }
     }
 }

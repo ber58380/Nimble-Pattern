@@ -17,6 +17,7 @@ import appeng.core.sync.network.NetworkHandler;
 import appeng.core.sync.packets.InventoryActionPacket;
 import appeng.helpers.InventoryAction;
 import com.ber.nimblePattern.client.gui.panel.PatternLoopPanel;
+import com.ber.nimblePattern.client.gui.panel.PatternToolPanel;
 import com.ber.nimblePattern.client.gui.panel.PatternUpgradePanel;
 import com.ber.nimblePattern.client.gui.panel.TagModePanel;
 import com.ber.nimblePattern.client.gui.search.PatternSearch;
@@ -94,6 +95,7 @@ public class PatternTagTermScreen<C extends PatternTagTermMenu> extends AEBaseSc
             var panel = switch (mode) {
                 case UPGRADE -> new PatternUpgradePanel(this, widgets);
                 case LOOP -> new PatternLoopPanel(this, widgets);
+                case TOOL -> new PatternToolPanel(this, widgets);
             };
             var tabButton = panel.createTabButton(button -> getMenu().setMode(mode));
             tabButton.setStyle(TabButton.Style.HORIZONTAL);
