@@ -27,7 +27,9 @@ public final class LoopStorageCellAccess {
         return null;
     }
 
-    /** Finds only a cell that is currently mounted, including an empty cell awaiting its seed. */
+    /**
+     * Finds only a cell that is currently mounted, including an empty cell awaiting its seed.
+     */
     public static LoopStorageCellInventory findMounted(MEStorage networkStorage, UUID cellId) {
         if (networkStorage instanceof NetworkStorageAccessorMixin accessor) {
             for (var inventories : accessor.nimblePattern$getPriorityInventory().values()) {

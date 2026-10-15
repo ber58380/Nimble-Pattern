@@ -9,7 +9,7 @@ import org.spongepowered.asm.mixin.gen.Accessor;
 import org.spongepowered.asm.mixin.gen.Invoker;
 
 @Mixin(value = CraftingCalculation.class, remap = false)
-public interface CraftingCalculationMixin {
+public interface CraftingCalculationAccessorMixin {
     @Accessor("networkInv")
     NetworkCraftingSimulationState getNetworkInv();
 

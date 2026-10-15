@@ -3,8 +3,13 @@ package com.ber.nimblePattern.mixin.ae2;
 import appeng.api.config.Actionable;
 import appeng.api.crafting.IPatternDetails;
 import appeng.api.features.IPlayerRegistry;
+import appeng.api.networking.IGrid;
+import appeng.api.networking.crafting.ICraftingPlan;
 import appeng.api.networking.crafting.ICraftingProvider;
+import appeng.api.networking.crafting.ICraftingRequester;
+import appeng.api.networking.crafting.ICraftingSubmitResult;
 import appeng.api.networking.energy.IEnergyService;
+import appeng.api.networking.security.IActionSource;
 import appeng.api.stacks.AEKey;
 import appeng.api.stacks.GenericStack;
 import appeng.api.stacks.KeyCounter;
@@ -14,12 +19,11 @@ import appeng.crafting.execution.ExecutingCraftingJob;
 import appeng.crafting.inv.ListCraftingInventory;
 import appeng.me.cluster.implementations.CraftingCPUCluster;
 import appeng.me.service.CraftingService;
-import com.ber.nimblePattern.crafting.FuzzyOutputLedger;
-import com.ber.nimblePattern.crafting.LoopCraftingController;
-import com.ber.nimblePattern.crafting.LoopBatchDispatch;
+import com.ber.nimblePattern.crafting.*;
 import com.ber.nimblePattern.network.LoopSeedLostNotificationPacket;
 import com.ber.nimblePattern.network.NimblePatternNetwork;
 import com.ber.nimblePattern.pattern.PatternMapping;
+import com.ber.nimblePattern.pattern.wrapper.NimbleCraftingPattern;
 import com.ber.nimblePattern.pattern.wrapper.NimbleProcessingPattern;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
@@ -36,6 +40,10 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.Set;
+
 // mod GTLCore will overwrite "executeCrafting", set higher priority to mixin later
 @Mixin(value = CraftingCpuLogic.class, remap = false, priority = 1200)
 public class CraftingCpuLogicMixin {
@@ -48,7 +56,7 @@ public class CraftingCpuLogicMixin {
     @Unique
     private LoopCraftingController loopController;
     @Unique
-    private boolean isLoopFinalOutput;
+    private boolean isFinalOutput;
 
     @Unique
     private final FuzzyOutputLedger fuzzyOutputLedger = new FuzzyOutputLedger();
@@ -61,10 +69,13 @@ public class CraftingCpuLogicMixin {
     @Shadow
     private @Nullable ExecutingCraftingJob job;
 
+    @Unique
+    private ToolCraftingController toolController;
+
     @Inject(method = "executeCrafting", at = @At("HEAD"))
     private void initializeFlags(CallbackInfoReturnable<Integer> cir) {
         LoopBatchDispatch.clear();
-        isLoopFinalOutput = false;
+        isFinalOutput = false;
         currentPattern = null;
         isFakePattern = false;
         isFuzzyPattern = false;
@@ -85,8 +96,16 @@ public class CraftingCpuLogicMixin {
         long operations = LoopBatchDispatch.take(details);
         boolean result;
         if (details instanceof NimbleProcessingPattern npp && npp.isLoopComposite()) {
-            if (loopController == null) loopController = new LoopCraftingController(cluster);
-            result = loopController.start(npp, craftingContainer, operations);
+            if (loopController == null) {
+                loopController = new LoopCraftingController(cluster);
+            }
+            if (toolController == null || !toolController.isActive()) {
+                result = loopController.start(npp, craftingContainer, operations);
+            } else {
+                result = false;
+            }
+        } else if (details instanceof NimbleCraftingPattern ncp && ncp.isToolPattern()) {
+            result = getToolCraftingController().push(ncp, provider, craftingContainer, cluster.getLevel());
         } else {
             result = provider.pushPattern(PatternMapping.getOriginalPattern(provider, details), craftingContainer);
         }
@@ -133,7 +152,7 @@ public class CraftingCpuLogicMixin {
             // simulate the output is back to the network
             return amount;
         }
-        if (isLoopFinalOutput) {
+        if (isFinalOutput) {
             if (link.isStandalone()) return amount;
             long inserted = link.insert(what, amount, mode);
             if (mode == Actionable.MODULATE && inserted > 0) {
@@ -168,14 +187,34 @@ public class CraftingCpuLogicMixin {
         return what.matches(finalOutput);
     }
 
+    @Unique
+    private void stopLoop() {
+        LoopBatchDispatch.clear();
+        if (loopController != null) {
+            for (var failure : loopController.releaseSeeds(inventory)) {
+                notifyLoopSeed(failure.key(), failure.returnFailed());
+            }
+        }
+        loopController = null;
+    }
+
+    @Unique
+    private void stopTool() {
+        if (toolController != null) {
+            toolController.release(inventory);
+        }
+    }
+
     @Inject(method = "finishJob", at = @At("HEAD"))
     private void injectFinishJob(boolean success, CallbackInfo ci) {
+        stopTool();
         stopLoop();
         fuzzyOutputLedger.clear();
     }
 
     @Inject(method = "cancel", at = @At("HEAD"))
     private void injectCancel(CallbackInfo ci) {
+        stopTool();
         stopLoop();
         fuzzyOutputLedger.clear();
     }
@@ -183,21 +222,39 @@ public class CraftingCpuLogicMixin {
     @Inject(method = "writeToNBT", at = @At("TAIL"))
     private void injectWriteToNBT(CompoundTag tag, CallbackInfo ci) {
         tag.put("fuzzyOutputLedger", fuzzyOutputLedger.save());
-        if (loopController != null) tag.put("loopController", loopController.save());
-        else tag.remove("loopController");
+        if (toolController != null) {
+            tag.put("toolController", toolController.save());
+        } else {
+            tag.remove("toolController");
+        }
+        if (loopController != null) {
+            tag.put("loopController", loopController.save());
+        } else {
+            tag.remove("loopController");
+        }
     }
 
     @Inject(method = "readFromNBT", at = @At("TAIL"))
     private void injectReadFromNBT(CompoundTag tag, CallbackInfo ci) {
         fuzzyOutputLedger.load(tag.getList("fuzzyOutputLedger", Tag.TAG_COMPOUND));
         loopController = null;
+        toolController = null;
+
+        if (tag.contains("toolController", Tag.TAG_COMPOUND)) {
+            getToolCraftingController().load(tag.getCompound("toolController"));
+        }
         if (tag.contains("loopController", Tag.TAG_COMPOUND)) {
             loopController = new LoopCraftingController(cluster);
             loopController.load(tag.getCompound("loopController"));
-            if (job == null) stopLoop();
+            if (job == null) {
+                stopLoop();
+            }
         }
         if (job == null) {
             fuzzyOutputLedger.clear();
+            if (toolController != null) {
+                toolController.release(inventory);
+            }
         }
     }
 
@@ -207,12 +264,6 @@ public class CraftingCpuLogicMixin {
         if (loopController != null && loopController.isActive()) {
             cir.setReturnValue(loopController.tick(craftingService, energyService, level));
         }
-    }
-
-    @Inject(method = "insert", at = @At("HEAD"), cancellable = true)
-    private void receiveLoopResults(AEKey key, long amount, Actionable mode, CallbackInfoReturnable<Long> cir) {
-        if (job == null || amount <= 0 || isLoopFinalOutput) return;
-        captureLoopOutput(key, amount, mode, cir);
     }
 
     @Unique
@@ -239,11 +290,11 @@ public class CraftingCpuLogicMixin {
                 long completed = Math.min(output.amount(),
                         ((ExecutingCraftingJobAccessorMixin) job).nimblePattern$getRemainingAmount());
                 if (completed > 0) {
-                    isLoopFinalOutput = true;
+                    isFinalOutput = true;
                     try {
                         ((CraftingCpuLogic) (Object) this).insert(output.what(), completed, Actionable.MODULATE);
                     } finally {
-                        isLoopFinalOutput = false;
+                        isFinalOutput = false;
                     }
                 }
             } else {
@@ -255,15 +306,31 @@ public class CraftingCpuLogicMixin {
     }
 
     @Unique
-    private void stopLoop() {
-        LoopBatchDispatch.clear();
-        if (loopController != null) {
-            for (var failure : loopController.releaseSeeds(inventory)) {
-                notifyLoopSeed(failure.key(), failure.returnFailed());
-            }
+    private void captureToolOutput(AEKey key, long amount, Actionable mode, CallbackInfoReturnable<Long> cir) {
+        if (toolController == null) {
+            return;
         }
-        loopController = null;
+        long accepted = toolController.accept(key, amount, mode);
+        if (accepted > 0) {
+            if (mode == Actionable.MODULATE) {
+                cluster.markDirty();
+            }
+            cir.setReturnValue(accepted);
+        }
     }
+
+    @Inject(method = "insert", at = @At("HEAD"), cancellable = true)
+    private void receiveSpecialResults(AEKey key, long amount, Actionable mode, CallbackInfoReturnable<Long> cir) {
+        if (job == null || amount <= 0 || isFinalOutput) {
+            return;
+        }
+        captureToolOutput(key, amount, mode, cir);
+        if (cir.isCancelled()) {
+            return;
+        }
+        captureLoopOutput(key, amount, mode, cir);
+    }
+
     @Unique
     private void notifyLoopSeed(AEKey key, boolean returnFailed) {
         if (job == null) return;
@@ -274,6 +341,76 @@ public class CraftingCpuLogicMixin {
         if (player != null) {
             NimblePatternNetwork.CHANNEL.send(PacketDistributor.PLAYER.with(() -> player),
                     new LoopSeedLostNotificationPacket(key, returnFailed));
+        }
+    }
+
+    @Unique
+    private ToolCraftingController getToolCraftingController() {
+        if (toolController == null) {
+            toolController = new ToolCraftingController();
+        }
+        return toolController;
+    }
+
+    @Inject(method = "trySubmitJob", at = @At("RETURN"))
+    private void reserveTools(IGrid grid, ICraftingPlan plan, IActionSource source, ICraftingRequester requester, CallbackInfoReturnable<ICraftingSubmitResult> cir) {
+        if (cir.getReturnValue().successful()) {
+            var reserved = ToolReservation.getToolReservation(plan.patternTimes());
+            if (!reserved.isEmpty()) {
+                getToolCraftingController().reserve(reserved, inventory);
+                cluster.markDirty();
+            }
+        }
+    }
+
+    @Inject(method = "tickCraftingLogic", at = @At("HEAD"))
+    private void submitToolPatternOutput(IEnergyService energy, CraftingService service, CallbackInfo ci) {
+        if (job == null || toolController == null || !toolController.isActive()) {
+            return;
+        }
+        var outputs = new ArrayList<>(toolController.settle());
+        if (outputs.isEmpty()) {
+            return;
+        }
+        // Sort the outputs, move the final output to the end of the arrayList.
+        // So the following steps would submit remainders and byproduct first.
+        var cpu = (CraftingCpuLogic) (Object) this;
+        var finalOutput = cpu.getFinalJobOutput();
+        outputs.sort(Comparator.comparing(stack -> stack.what().matches(finalOutput)));
+
+        for (var output : outputs) {
+            if (job != null && output.what().matches(finalOutput)) {
+                inventory.insert(output.what(), output.amount(), Actionable.MODULATE);
+                long completed = Math.min(output.amount(), ((ExecutingCraftingJobAccessorMixin) job).nimblePattern$getRemainingAmount());
+                isFinalOutput = true;
+                try {
+                    cpu.insert(output.what(), completed, Actionable.MODULATE);
+                } finally {
+                    isFinalOutput = false;
+                }
+            } else {
+                long accepted = cpu.insert(output.what(), output.amount(), Actionable.MODULATE);
+                if (accepted < output.amount()) {
+                    inventory.insert(output.what(), output.amount() - accepted, Actionable.MODULATE);
+                }
+            }
+        }
+        if (!outputs.isEmpty()) {
+            cluster.markDirty();
+        }
+    }
+
+    @Inject(method = "getWaitingFor", at = @At("RETURN"), cancellable = true)
+    private void getWaitingTool(AEKey key, CallbackInfoReturnable<Long> cir) {
+        if (toolController != null) {
+            cir.setReturnValue(Math.max(cir.getReturnValue(), toolController.getWaitingAmount(key)));
+        }
+    }
+
+    @Inject(method = "getAllWaitingFor", at = @At("TAIL"))
+    private void addWaitingTool(Set<AEKey> keys, CallbackInfo ci) {
+        if (toolController != null) {
+            toolController.addWaitingList(keys);
         }
     }
 }

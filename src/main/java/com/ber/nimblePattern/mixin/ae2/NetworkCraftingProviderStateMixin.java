@@ -4,14 +4,14 @@ import appeng.api.crafting.IPatternDetails;
 import appeng.api.networking.crafting.ICraftingProvider;
 import appeng.api.stacks.AEItemKey;
 import appeng.api.stacks.GenericStack;
-import appeng.blockentity.crafting.IMolecularAssemblerSupportedPattern;
+import appeng.crafting.pattern.AECraftingPattern;
 import appeng.crafting.pattern.AEProcessingPattern;
 import appeng.helpers.patternprovider.PatternContainer;
 import appeng.me.service.helpers.NetworkCraftingProviders;
 import com.ber.nimblePattern.pattern.NimblePatternTag;
 import com.ber.nimblePattern.pattern.PatternMapping;
 import com.ber.nimblePattern.pattern.loop.LoopPatternData;
-import com.ber.nimblePattern.pattern.wrapper.NimbleAssemblerPattern;
+import com.ber.nimblePattern.pattern.wrapper.NimbleCraftingPattern;
 import com.ber.nimblePattern.pattern.wrapper.NimblePatternWrapper;
 import com.ber.nimblePattern.pattern.wrapper.NimbleProcessingPattern;
 import org.spongepowered.asm.mixin.Final;
@@ -114,10 +114,10 @@ public class NetworkCraftingProviderStateMixin {
                 wrapped.add(pattern);
             } else {
                 definition = AEItemKey.of(NimblePatternTag.filterCraftingTags(stack));
-                if (pattern instanceof AEProcessingPattern aep) {
-                    wrapped.add(new NimbleProcessingPattern(aep, definition));
-                } else if (pattern instanceof IMolecularAssemblerSupportedPattern asp) {
-                    wrapped.add(new NimbleAssemblerPattern(asp, definition));
+                if (pattern instanceof AEProcessingPattern app) {
+                    wrapped.add(new NimbleProcessingPattern(app, definition));
+                } else if (pattern instanceof AECraftingPattern acp) {
+                    wrapped.add(new NimbleCraftingPattern(acp, definition));
                 } else {
                     wrapped.add(pattern);
                 }

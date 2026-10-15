@@ -6,7 +6,7 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 
 @Mixin(value = DelegatingMEInventory.class, remap = false)
-public interface DelegatingMEInventoryMixin {
+public interface DelegatingMEInventoryAccessorMixin {
     @Accessor("delegate")
     MEStorage nimblePattern$getDelegate();
 }

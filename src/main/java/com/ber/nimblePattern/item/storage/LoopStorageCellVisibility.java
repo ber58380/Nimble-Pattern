@@ -2,7 +2,7 @@ package com.ber.nimblePattern.item.storage;
 
 import appeng.api.storage.MEStorage;
 import appeng.api.storage.cells.StorageCell;
-import com.ber.nimblePattern.mixin.ae2.DelegatingMEInventoryMixin;
+import com.ber.nimblePattern.mixin.ae2.DelegatingMEInventoryAccessorMixin;
 
 import java.util.Collections;
 import java.util.IdentityHashMap;
@@ -18,7 +18,7 @@ public final class LoopStorageCellVisibility {
             if (storage instanceof StorageCell cell) {
                 return cell;
             }
-            if (storage instanceof DelegatingMEInventoryMixin accessor) {
+            if (storage instanceof DelegatingMEInventoryAccessorMixin accessor) {
                 storage = accessor.nimblePattern$getDelegate();
             } else {
                 return null;

@@ -3,11 +3,11 @@ package com.ber.nimblePattern.mixin.ae2;
 import appeng.api.crafting.IPatternDetails;
 import appeng.api.crafting.PatternDetailsHelper;
 import appeng.api.stacks.AEItemKey;
-import appeng.blockentity.crafting.IMolecularAssemblerSupportedPattern;
 import appeng.crafting.execution.ExecutingCraftingJob;
+import appeng.crafting.pattern.AECraftingPattern;
 import appeng.crafting.pattern.AEProcessingPattern;
 import com.ber.nimblePattern.pattern.NimblePatternTag;
-import com.ber.nimblePattern.pattern.wrapper.NimbleAssemblerPattern;
+import com.ber.nimblePattern.pattern.wrapper.NimbleCraftingPattern;
 import com.ber.nimblePattern.pattern.wrapper.NimbleProcessingPattern;
 import net.minecraft.world.level.Level;
 import org.spongepowered.asm.mixin.Mixin;
@@ -26,10 +26,10 @@ public class ExecutingCraftingJobMixin {
             return null;
         }
         if (definition != null) {
-            if (decoded instanceof AEProcessingPattern aep) {
-                return new NimbleProcessingPattern(aep, definition);
-            } else if (decoded instanceof IMolecularAssemblerSupportedPattern asp) {
-                return new NimbleAssemblerPattern(asp, definition);
+            if (decoded instanceof AEProcessingPattern app) {
+                return new NimbleProcessingPattern(app, definition);
+            } else if (decoded instanceof AECraftingPattern acp) {
+                return new NimbleCraftingPattern(acp, definition);
             }
         }
         return decoded;

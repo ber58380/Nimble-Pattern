@@ -10,14 +10,14 @@ import appeng.api.stacks.AEKey;
 import appeng.api.upgrades.IUpgradeInventory;
 import appeng.api.upgrades.IUpgradeableObject;
 import appeng.api.upgrades.UpgradeInventories;
-import appeng.blockentity.crafting.IMolecularAssemblerSupportedPattern;
 import appeng.core.definitions.AEItems;
+import appeng.crafting.pattern.AECraftingPattern;
 import appeng.crafting.pattern.AEProcessingPattern;
 import appeng.helpers.patternprovider.PatternProviderLogic;
 import appeng.helpers.patternprovider.PatternProviderLogicHost;
 import appeng.util.ConfigManager;
 import com.ber.nimblePattern.pattern.NimblePatternTag;
-import com.ber.nimblePattern.pattern.wrapper.NimbleAssemblerPattern;
+import com.ber.nimblePattern.pattern.wrapper.NimbleCraftingPattern;
 import com.ber.nimblePattern.pattern.wrapper.NimblePatternWrapper;
 import com.ber.nimblePattern.pattern.wrapper.NimbleProcessingPattern;
 import net.minecraft.nbt.CompoundTag;
@@ -124,15 +124,15 @@ public class PatternProviderLogicMixin implements IUpgradeableObject {
         for (var pattern : raw) {
             var definition = pattern.getDefinition();
             var stack = NimblePatternTag.filterCraftingTags(definition.toStack());
-            if (pattern instanceof AEProcessingPattern aep) {
+            if (pattern instanceof AEProcessingPattern app) {
                 if (fuzzyMode) {
                     NimblePatternTag.tagFuzzy(stack);
                 }
                 definition = AEItemKey.of(stack);
-                wrapped.add(new NimbleProcessingPattern(aep, definition));
-            } else if (pattern instanceof IMolecularAssemblerSupportedPattern asp) {
+                wrapped.add(new NimbleProcessingPattern(app, definition));
+            } else if (pattern instanceof AECraftingPattern acp) {
                 definition = AEItemKey.of(stack);
-                wrapped.add(new NimbleAssemblerPattern(asp, definition));
+                wrapped.add(new NimbleCraftingPattern(acp, definition));
             } else {
                 wrapped.add(pattern);
             }

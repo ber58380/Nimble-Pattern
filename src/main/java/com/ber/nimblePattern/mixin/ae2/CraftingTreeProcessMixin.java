@@ -33,7 +33,7 @@ public class CraftingTreeProcessMixin {
             return;
         }
         var loopData = pattern.getLoopData();
-        var calculation = (CraftingCalculationMixin) job;
+        var calculation = (CraftingCalculationAccessorMixin) job;
         var gridNode = calculation.getSimRequester().getGridNode();
         boolean seedAvailable = gridNode != null
                 && LoopStorageCellAccess.find(

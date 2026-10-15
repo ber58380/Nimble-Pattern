@@ -18,7 +18,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 public class GtlLoopBatchMixin {
     @Redirect(method = "getOperations", at = @At(value = "INVOKE",
             target = "Lorg/gtlcore/gtlcore/integration/ae2/crafting/IPatternProviderAutoExpand;gtlcore$getMaxPatternOperations(Lappeng/api/crafting/IPatternDetails;J)J"), require = 0)
-    private static long nativeProviderLimit(@Coerce Object provider, IPatternDetails pattern, long remaining) {
+    private static long providerLimit(@Coerce Object provider, IPatternDetails pattern, long remaining) {
         return GtlBatchAdapter.maximum((ICraftingProvider) provider, pattern, remaining);
     }
 
