@@ -2,10 +2,10 @@ package com.ber.nimblePattern.crafting;
 
 import appeng.api.crafting.IPatternDetails;
 
-public final class LoopBatchDispatch {
+public final class CraftingBatchDispatch {
     private static final ThreadLocal<Dispatch> CURRENT = new ThreadLocal<>();
 
-    private LoopBatchDispatch() {
+    private CraftingBatchDispatch() {
     }
 
     public static void record(IPatternDetails pattern, long operations) {

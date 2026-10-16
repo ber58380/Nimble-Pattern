@@ -72,19 +72,30 @@ public class CraftingCpuLogicMixin {
     @Unique
     private ToolCraftingController toolController;
 
+    @Unique
+    private ProbabilityCraftingController probabilityController;
+
     @Inject(method = "executeCrafting", at = @At("HEAD"))
     private void initializeFlags(CallbackInfoReturnable<Integer> cir) {
-        LoopBatchDispatch.clear();
+        CraftingBatchDispatch.clear();
         isFinalOutput = false;
         currentPattern = null;
         isFakePattern = false;
         isFuzzyPattern = false;
     }
 
+    @Unique
+    private ProbabilityCraftingController getOrCreateProbabilityController() {
+        if (probabilityController == null) {
+            probabilityController = new ProbabilityCraftingController();
+        }
+        return probabilityController;
+    }
+
     // A failed extraction or push must not leave a count for a later dispatch.
     @Inject(method = "executeCrafting", at = @At("RETURN"))
     private void clearBatchDispatch(CallbackInfoReturnable<Integer> cir) {
-        LoopBatchDispatch.clear();
+        CraftingBatchDispatch.clear();
     }
 
     // record what is the current pushing pattern
@@ -93,7 +104,7 @@ public class CraftingCpuLogicMixin {
             at = @At(value = "INVOKE",
                     target = "Lappeng/api/networking/crafting/ICraftingProvider;pushPattern(Lappeng/api/crafting/IPatternDetails;[Lappeng/api/stacks/KeyCounter;)Z"))
     private boolean trackCurrentPattern(ICraftingProvider provider, IPatternDetails details, KeyCounter[] craftingContainer) {
-        long operations = LoopBatchDispatch.take(details);
+        long operations = CraftingBatchDispatch.take(details);
         boolean result;
         if (details instanceof NimbleProcessingPattern npp && npp.isLoopComposite()) {
             if (loopController == null) {
@@ -105,11 +116,17 @@ public class CraftingCpuLogicMixin {
                 result = false;
             }
         } else if (details instanceof NimbleCraftingPattern ncp && ncp.isToolPattern()) {
-            result = getToolCraftingController().push(ncp, provider, craftingContainer, cluster.getLevel());
+            result = getOrCreateToolController().push(ncp, provider, craftingContainer, cluster.getLevel());
         } else {
             result = provider.pushPattern(PatternMapping.getOriginalPattern(provider, details), craftingContainer);
         }
         currentPattern = result && details instanceof NimbleProcessingPattern npp ? npp : null;
+
+        // TODO:后续要处理概率样板和假样板、循环样板的组合关系
+        if (currentPattern != null && currentPattern.isProbabilityPattern()) {
+            getOrCreateProbabilityController().dispatched(currentPattern.getOutputs(), operations, currentPattern.getMaxWaitingTicks());
+            cluster.markDirty();
+        }
         return result;
     }
 
@@ -167,8 +184,11 @@ public class CraftingCpuLogicMixin {
             method = "insert",
             at = @At(value = "INVOKE",
                     target = "Lappeng/crafting/inv/ListCraftingInventory;extract(Lappeng/api/stacks/AEKey;JLappeng/api/config/Actionable;)J"))
-    private long fuzzyExtract(ListCraftingInventory inv, AEKey what, long amount, Actionable mode) {
+    private long settleWaitingOutputs(ListCraftingInventory inv, AEKey what, long amount, Actionable mode) {
         var receipt = fuzzyOutputLedger.extract(inv, what, amount, mode, (key, accepted) -> {
+            if (probabilityController != null && probabilityController.isActive()) {
+                probabilityController.received(key, accepted);
+            }
         });
         isFuzzyPattern = receipt.fuzzyMode();
         return receipt.amount();
@@ -189,7 +209,7 @@ public class CraftingCpuLogicMixin {
 
     @Unique
     private void stopLoop() {
-        LoopBatchDispatch.clear();
+        CraftingBatchDispatch.clear();
         if (loopController != null) {
             for (var failure : loopController.releaseSeeds(inventory)) {
                 notifyLoopSeed(failure.key(), failure.returnFailed());
@@ -205,10 +225,18 @@ public class CraftingCpuLogicMixin {
         }
     }
 
+    @Unique
+    private void stopProbability() {
+        if (probabilityController != null) {
+            probabilityController.release();
+        }
+    }
+
     @Inject(method = "finishJob", at = @At("HEAD"))
     private void injectFinishJob(boolean success, CallbackInfo ci) {
         stopTool();
         stopLoop();
+        stopProbability();
         fuzzyOutputLedger.clear();
     }
 
@@ -216,6 +244,7 @@ public class CraftingCpuLogicMixin {
     private void injectCancel(CallbackInfo ci) {
         stopTool();
         stopLoop();
+        stopProbability();
         fuzzyOutputLedger.clear();
     }
 
@@ -232,6 +261,11 @@ public class CraftingCpuLogicMixin {
         } else {
             tag.remove("loopController");
         }
+        if (probabilityController != null) {
+            tag.put("probabilityController", probabilityController.save());
+        } else {
+            tag.remove("probabilityController");
+        }
     }
 
     @Inject(method = "readFromNBT", at = @At("TAIL"))
@@ -239,22 +273,23 @@ public class CraftingCpuLogicMixin {
         fuzzyOutputLedger.load(tag.getList("fuzzyOutputLedger", Tag.TAG_COMPOUND));
         loopController = null;
         toolController = null;
+        probabilityController = null;
 
         if (tag.contains("toolController", Tag.TAG_COMPOUND)) {
-            getToolCraftingController().load(tag.getCompound("toolController"));
+            getOrCreateToolController().load(tag.getCompound("toolController"));
         }
         if (tag.contains("loopController", Tag.TAG_COMPOUND)) {
             loopController = new LoopCraftingController(cluster);
             loopController.load(tag.getCompound("loopController"));
-            if (job == null) {
-                stopLoop();
-            }
+        }
+        if (tag.contains("probabilityController", Tag.TAG_COMPOUND)) {
+            getOrCreateProbabilityController().load(tag.getCompound("probabilityController"));
         }
         if (job == null) {
+            stopTool();
+            stopLoop();
+            stopProbability();
             fuzzyOutputLedger.clear();
-            if (toolController != null) {
-                toolController.release(inventory);
-            }
         }
     }
 
@@ -345,7 +380,7 @@ public class CraftingCpuLogicMixin {
     }
 
     @Unique
-    private ToolCraftingController getToolCraftingController() {
+    private ToolCraftingController getOrCreateToolController() {
         if (toolController == null) {
             toolController = new ToolCraftingController();
         }
@@ -357,15 +392,18 @@ public class CraftingCpuLogicMixin {
         if (cir.getReturnValue().successful()) {
             var reserved = ToolReservation.getToolReservation(plan.patternTimes());
             if (!reserved.isEmpty()) {
-                getToolCraftingController().reserve(reserved, inventory);
+                getOrCreateToolController().reserve(reserved, inventory);
                 cluster.markDirty();
             }
         }
     }
 
-    @Inject(method = "tickCraftingLogic", at = @At("HEAD"))
-    private void submitToolPatternOutput(IEnergyService energy, CraftingService service, CallbackInfo ci) {
-        if (job == null || toolController == null || !toolController.isActive()) {
+    /**
+     * submit the outputs collected by toolController
+     */
+    @Unique
+    private void submitToolPatternOutput() {
+        if (toolController == null || !toolController.isActive()) {
             return;
         }
         var outputs = new ArrayList<>(toolController.settle());
@@ -398,6 +436,31 @@ public class CraftingCpuLogicMixin {
         if (!outputs.isEmpty()) {
             cluster.markDirty();
         }
+    }
+
+    /**
+     * update the state of probability patterns every tick
+     */
+    @Unique
+    private void tickProbability() {
+        if (probabilityController == null || !probabilityController.isActive()) {
+            return;
+        }
+        var expired = probabilityController.tick();
+        cluster.markDirty();
+        for (var missing : expired) {
+            // TODO: 处理概率合成失败的配方
+            break;
+        }
+    }
+
+    @Inject(method = "tickCraftingLogic", at = @At("HEAD"))
+    private void updateControllers(IEnergyService energy, CraftingService service, CallbackInfo ci) {
+        if (job == null || !cluster.isActive()) {
+            return;
+        }
+        submitToolPatternOutput();
+        tickProbability();
     }
 
     @Inject(method = "getWaitingFor", at = @At("RETURN"), cancellable = true)

@@ -70,7 +70,7 @@ public class ModEnUsLangProvider extends LanguageProvider {
         add("toast.nimble_pattern.loop_seed_lost_content", "%s was lost. Refill the loop storage cell promptly.");
 
         add("tooltip.nimble_pattern.tool_pattern", "Tool Pattern");
-        add("gui.nimble_pattern.tag_tool_failure", "Fail to tag tool patterns");
+        add("gui.nimble_pattern.tag_tool_pattern_failure", "Fail to tag tool patterns");
         add("gui.nimble_pattern.no_tool", "Tool not selected");
         add("gui.nimble_pattern.crafting_only", "Only support crafting patterns");
         add("gui.nimble_pattern.tool_changed", "The tool would have changes after crafting");

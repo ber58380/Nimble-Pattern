@@ -14,21 +14,17 @@ import appeng.me.cluster.implementations.CraftingCPUCluster;
 import appeng.me.service.CraftingService;
 import com.ber.nimblePattern.item.storage.LoopStorageCellAccess;
 import com.ber.nimblePattern.item.storage.LoopStorageCellInventory;
-import com.ber.nimblePattern.pattern.loop.LoopPatternData;
 import com.ber.nimblePattern.pattern.NimblePatternTag;
 import com.ber.nimblePattern.pattern.PatternMapping;
+import com.ber.nimblePattern.pattern.loop.LoopPatternData;
+import com.ber.nimblePattern.pattern.wrapper.NimbleProcessingPattern;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.world.item.ItemStack;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.UUID;
-import com.ber.nimblePattern.pattern.wrapper.NimbleProcessingPattern;
 import net.minecraft.world.level.Level;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 public final class LoopCraftingController {
     private final CraftingCPUCluster cluster;
@@ -57,6 +53,7 @@ public final class LoopCraftingController {
     }
 
     public boolean start(NimbleProcessingPattern composite, KeyCounter[] externalInputs, long operations) {
+        // TODO:工具样板和循环样板的执行目前是串行执行(active限制)，后续考虑升级为并行执行
         if (active || operations <= 0 || !composite.getLoopMode() || cluster.getGrid() == null) {
             return false;
         }
@@ -245,7 +242,9 @@ public final class LoopCraftingController {
         return new Acceptance(accepted, finalOutput, List.copyOf(remainder));
     }
 
-    /** Release job-owned seeds once, at completion or cancellation, using the current network mounts. */
+    /**
+     * Release job-owned seeds once, at completion or cancellation, using the current network mounts.
+     */
     public List<SeedFailure> releaseSeeds(ListCraftingInventory cpuInventory) {
         var failures = new ArrayList<SeedFailure>();
         if (active && compositeOperation) {
@@ -337,8 +336,11 @@ public final class LoopCraftingController {
         active = true;
     }
 
-    private record ReservedSeed(UUID cellId, GenericStack seed) {}
-    public record SeedFailure(AEKey key, boolean returnFailed) {}
+    private record ReservedSeed(UUID cellId, GenericStack seed) {
+    }
+
+    public record SeedFailure(AEKey key, boolean returnFailed) {
+    }
 
     private List<NimbleProcessingPattern> resolveSteps(CraftingService service, LoopPatternData loopData) {
         var result = new ArrayList<NimbleProcessingPattern>(loopData.size());

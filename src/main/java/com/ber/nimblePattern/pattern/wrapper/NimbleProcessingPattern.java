@@ -17,6 +17,7 @@ public class NimbleProcessingPattern extends NimblePatternWrapper<AEProcessingPa
     private final boolean fuzzyMode;
     private final GenericStack[] outputs;
     private final LoopPatternData loopData;
+    private final long maxWaitingTicks;
 
     public NimbleProcessingPattern(AEProcessingPattern pattern, AEItemKey definition) {
         super(pattern, definition);
@@ -24,6 +25,7 @@ public class NimbleProcessingPattern extends NimblePatternWrapper<AEProcessingPa
         this.fakeMode = NimblePatternTag.getFake(stack);
         this.fuzzyMode = NimblePatternTag.getFuzzy(stack);
         this.loopData = NimblePatternTag.getLoop(stack);
+        this.maxWaitingTicks = NimblePatternTag.getProbability(stack);
         if (loopData != null && loopData.isClosingPattern()) {
             this.inputs = this.loopData.externalInputs().stream()
                     .map(input -> (IInput) new LoopInput(input, fuzzyMode))
@@ -56,6 +58,14 @@ public class NimbleProcessingPattern extends NimblePatternWrapper<AEProcessingPa
 
     public LoopPatternData getLoopData() {
         return loopData;
+    }
+
+    public long getMaxWaitingTicks() {
+        return maxWaitingTicks;
+    }
+
+    public boolean isProbabilityPattern() {
+        return maxWaitingTicks > 0;
     }
 
     @Override

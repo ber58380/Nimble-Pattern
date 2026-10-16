@@ -106,7 +106,7 @@ public class PatternTagTermMenu extends AEBaseMenu {
     public long dialogRevision = 0;
     private static final Component LOOP_ERROR_TITLE = Component.translatable("gui.nimble_pattern.tag_loop_pattern_failure").withStyle(ChatFormatting.RED);
     private static final Component LOOP_SUCCESS_TITLE = Component.translatable("gui.nimble_pattern.tag_loop_pattern_success").withStyle(ChatFormatting.DARK_GREEN);
-    private static final Component TOOL_ERROR_TITLE = Component.translatable("gui.nimble_pattern.tag_tool_failure").withStyle(ChatFormatting.RED);
+    private static final Component TOOL_ERROR_TITLE = Component.translatable("gui.nimble_pattern.tag_tool_pattern_failure").withStyle(ChatFormatting.RED);
 
     public PatternTagTermMenu(int id, Inventory ip, IPatternTagMenuHost host) {
         this(TYPE, id, ip, host, true);

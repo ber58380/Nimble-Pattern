@@ -70,7 +70,7 @@ public class ModZhCnLangProvider extends LanguageProvider {
         add("toast.nimble_pattern.loop_seed_lost_content", "%s丢失，请及时补充循环存储元件。");
 
         add("tooltip.nimble_pattern.tool_pattern", "工具样板");
-        add("gui.nimble_pattern.tag_tool_failure", "工具样板标记失败");
+        add("gui.nimble_pattern.tag_tool_pattern_failure", "工具样板标记失败");
         add("gui.nimble_pattern.no_tool", "工具未选择");
         add("gui.nimble_pattern.crafting_only", "仅支持合成样板");
         add("gui.nimble_pattern.tool_changed", "工具合成后会有变化");
