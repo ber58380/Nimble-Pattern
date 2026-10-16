@@ -16,7 +16,7 @@ import net.minecraft.resources.ResourceLocation;
 
 import static com.ber.nimblePattern.menu.SlotSemantics.*;
 
-public class PatternLoopPanel extends TagModePanel {
+public class LoopPatternPanel extends TagModePanel {
     private static final Blitter BG = Blitter.texture(
             ResourceLocation.fromNamespaceAndPath(NimblePattern.MOD_ID, "textures/guis/panel/loop/loop_panel.png"),
             WIDTH,
@@ -24,7 +24,7 @@ public class PatternLoopPanel extends TagModePanel {
     private final Button loopApplyButton;
     private final Button loopClearButton;
 
-    public PatternLoopPanel(PatternTagTermScreen<?> screen, WidgetContainer widgets) {
+    public LoopPatternPanel(PatternTagTermScreen<?> screen, WidgetContainer widgets) {
         super(screen, widgets);
         this.loopApplyButton = new NimbleButton(0, 0, 0, 0, Component.translatable("gui.nimble_pattern.pattern_tag_terminal.apply"), button -> menu.applyLoop());
         this.loopClearButton = new NimbleButton(0, 0, 0, 0, Component.translatable("gui.nimble_pattern.pattern_tag_terminal.clear"), button -> menu.clearLoop());

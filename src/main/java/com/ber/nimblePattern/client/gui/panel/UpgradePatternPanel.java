@@ -19,7 +19,7 @@ import net.minecraft.resources.ResourceLocation;
 
 import static com.ber.nimblePattern.menu.SlotSemantics.UPGRADE_CONDITION;
 
-public class PatternUpgradePanel extends TagModePanel {
+public class UpgradePatternPanel extends TagModePanel {
     private static final Blitter BG = Blitter.texture(
             ResourceLocation.fromNamespaceAndPath(NimblePattern.MOD_ID, "textures/guis/panel/upgrade/upgrade_panel.png"),
             WIDTH,
@@ -29,7 +29,7 @@ public class PatternUpgradePanel extends TagModePanel {
     private final Button upgradeClearButton;
     private final Button upgradeApplyButton;
 
-    public PatternUpgradePanel(PatternTagTermScreen<?> screen, WidgetContainer widgets) {
+    public UpgradePatternPanel(PatternTagTermScreen<?> screen, WidgetContainer widgets) {
         super(screen, widgets);
 
         this.conditionTextField = new AETextField(screen.getStyle(), Minecraft.getInstance().font, 0, 0, 0, 0);

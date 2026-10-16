@@ -42,6 +42,8 @@ public class NimblePatternTag {
     private static final String LOOP_TAG = "loop";
     // the tool tag includes: tools
     private static final String TOOL_TAG = "tool";
+    // the probability tag includes: maxWaitingTicks
+    private static final String PROBABILITY_TAG = "probability";
 
     public static void removeTag(ItemStack pattern) {
         CompoundTag root = pattern.getTagElement(ROOT);
@@ -250,6 +252,12 @@ public class NimblePatternTag {
         toolTag.put("tools", writeGenericStacks(tools));
         tagPattern(pattern, TOOL_TAG, toolTag);
     }
+
+    public static void tagProbability(ItemStack pattern, long maxWaitingTicks) {
+        CompoundTag probabilityTag = new CompoundTag();
+        probabilityTag.putLong("maxWaitingTicks", maxWaitingTicks);
+        tagPattern(pattern, PROBABILITY_TAG, probabilityTag);
+    }
     // endregion
 
     // region get functions
@@ -391,6 +399,15 @@ public class NimblePatternTag {
         return readGenericStacks(toolTag.getList("tools", Tag.TAG_COMPOUND));
     }
 
+    public static long getProbability(ItemStack pattern) {
+        CompoundTag root = pattern.getTagElement(ROOT);
+        if (root == null || !root.contains(PROBABILITY_TAG, Tag.TAG_COMPOUND)) {
+            return 0;
+        }
+        CompoundTag probabilityTag = root.getCompound(PROBABILITY_TAG);
+        return probabilityTag.getLong("maxWaitingTicks");
+    }
+
     /**
      * This function is used to overview all crafting modes of the pattern.
      */
@@ -407,7 +424,6 @@ public class NimblePatternTag {
             info.put("fake", fakeTag.getBoolean("isFake"));
         }
         if (root.contains(LOOP_TAG, Tag.TAG_COMPOUND)) {
-            CompoundTag loopTag = root.getCompound(LOOP_TAG);
             info.put("loop", getLoop(pattern) != null);
         }
         return info;
@@ -462,6 +478,17 @@ public class NimblePatternTag {
             return;
         }
         root.remove(TOOL_TAG);
+        if (root.isEmpty()) {
+            pattern.removeTagKey(ROOT);
+        }
+    }
+
+    public static void removeProbabilityTag(ItemStack pattern) {
+        var root = pattern.getTagElement(ROOT);
+        if (root == null) {
+            return;
+        }
+        root.remove(PROBABILITY_TAG);
         if (root.isEmpty()) {
             pattern.removeTagKey(ROOT);
         }

@@ -1,0 +1,24 @@
+{
+  "__comment": "Describes the parts of the pattern tag terminal that relate to tag probability patterns",
+  "$schema": "../../schema.json",
+  "widgets": {
+    "probabilityTextField": {
+      "left": 90,
+      "bottom": 166,
+      "width": 79,
+      "height": 12
+    },
+    "probabilityApplyButton": {
+      "left": 129,
+      "bottom": 112,
+      "width": 40,
+      "height": 15
+    },
+    "probabilityClearButton": {
+      "left": 129,
+      "bottom": 135,
+      "width": 40,
+      "height": 15
+    }
+  }
+}

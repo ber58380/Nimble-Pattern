@@ -11,14 +11,6 @@ public class ModEnUsLangProvider extends LanguageProvider {
 
     @Override
     protected void addTranslations() {
-        add("gui.nimble_pattern.pattern_tag_terminal.tool.success", "Tool patterns marked successfully");
-        add("gui.nimble_pattern.pattern_tag_terminal.tool.failure", "Failed to mark tool patterns");
-        add("gui.nimble_pattern.pattern_tag_terminal.tool.missing_tools", "Place the item to mark in the tool slot.");
-        add("gui.nimble_pattern.pattern_tag_terminal.tool.invalid_pattern", "Insert valid patterns with valid ingredient amounts.");
-        add("gui.nimble_pattern.pattern_tag_terminal.tool.crafting_only", "Only crafting patterns are supported.");
-        add("gui.nimble_pattern.pattern_tag_terminal.tool.missing_input", "The selected tool must be an input of every pattern with identical item data.");
-        add("gui.nimble_pattern.pattern_tag_terminal.tool.invalid_tool", "The tool must be non-damageable and returned unchanged, or the recipe must produce more of the exact item than it consumes (such as template duplication).");
-        add("gui.nimble_pattern.pattern_tag_terminal.tool.loop_conflict", "Clear the loop marking in the Loop tab before marking tools.");
         add("itemGroup.nimble_pattern_tab", "Nimble Pattern");
 
         add("item.nimble_pattern.pattern_tag_terminal", "Pattern Tag Terminal");
@@ -29,6 +21,7 @@ public class ModEnUsLangProvider extends LanguageProvider {
         add("gui.nimble_pattern.pattern_tag_terminal.tab.upgrade", "Upgrade Patterns");
         add("gui.nimble_pattern.pattern_tag_terminal.tab.loop", "Loop Patterns");
         add("gui.nimble_pattern.pattern_tag_terminal.tab.tool", "Tool Patterns");
+        add("gui.nimble_pattern.pattern_tag_terminal.tab.probability", "Probability Patterns");
 
         add("tooltip.nimble_pattern.fake_pattern", "Fake Pattern");
         add("tooltip.nimble_pattern.condition", "Upgrade condition: %s");
@@ -83,5 +76,8 @@ public class ModEnUsLangProvider extends LanguageProvider {
         add("gui.nimble_pattern.tool_changed", "The tool would have changes after crafting");
         add("gui.nimble_pattern.tool_is_not_input", "Selected tool is not the input of the pattern");
         add("gui.nimble_pattern.tool_is_damageable", "Tool is damageable");
+
+        add("tooltip.nimble_pattern.probability_pattern", "Probability Pattern");
+        add("gui.nimble_pattern.pattern_tag_terminal.probability.waiting_time", "Maximum waiting seconds");
     }
 }

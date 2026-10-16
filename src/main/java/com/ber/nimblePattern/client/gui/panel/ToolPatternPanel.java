@@ -19,7 +19,7 @@ import net.minecraft.resources.ResourceLocation;
 
 import static com.ber.nimblePattern.menu.SlotSemantics.TOOL_INPUT;
 
-public class PatternToolPanel extends TagModePanel {
+public class ToolPatternPanel extends TagModePanel {
     private static final Blitter BG = Blitter.texture(
             ResourceLocation.fromNamespaceAndPath(NimblePattern.MOD_ID, "textures/guis/panel/tool/tool_panel.png"),
             WIDTH,
@@ -30,7 +30,7 @@ public class PatternToolPanel extends TagModePanel {
     private final Button toolApplyButton;
     private final Button toolClearButton;
 
-    public PatternToolPanel(PatternTagTermScreen<?> screen, WidgetContainer widgets) {
+    public ToolPatternPanel(PatternTagTermScreen<?> screen, WidgetContainer widgets) {
         super(screen, widgets);
 
         this.toolTextField = new AETextField(screen.getStyle(), Minecraft.getInstance().font, 0, 0, 0, 0);

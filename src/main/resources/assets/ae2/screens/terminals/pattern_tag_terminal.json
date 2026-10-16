@@ -5,7 +5,8 @@
     "../common/player_inventory.json",
     "tag/upgrade.json",
     "tag/loop.json",
-    "tag/tool.json"
+    "tag/tool.json",
+    "tag/probability.json"
   ],
   "slots": {
     "INPUT_PATTERN": {
@@ -111,6 +112,12 @@
       "width": 22,
       "height": 22
     },
+    "modeTabButton3": {
+      "left": 175,
+      "bottom": 111,
+      "width": 22,
+      "height": 22
+    },
     "modePanel0": {
       "left": 88,
       "bottom": 166
@@ -120,6 +127,10 @@
       "bottom": 166
     },
     "modePanel2": {
+      "left": 88,
+      "bottom": 166
+    },
+    "modePanel3": {
       "left": 88,
       "bottom": 166
     },

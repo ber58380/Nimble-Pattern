@@ -153,6 +153,8 @@ public class PatternTagTermMenu extends AEBaseMenu {
         registerClientAction("clearLoop", this::clearLoop);
         registerClientAction("applyTool", this::applyTool);
         registerClientAction("clearTool", this::clearTool);
+        registerClientAction("applyProbability", String.class, this::applyProbability);
+        registerClientAction("clearProbability", this::clearProbability);
     }
 
     public RestrictedInputSlot[] getInputPatternSlots() {
@@ -519,12 +521,45 @@ public class PatternTagTermMenu extends AEBaseMenu {
         }
     }
 
-    private void showToolResult(String reason, boolean success) {
-        showDialogBox(Component.translatable("gui.nimble_pattern.pattern_tag_terminal.tool."
-                                + (success ? "success" : "failure"))
-                        .withStyle(success ? ChatFormatting.DARK_GREEN : ChatFormatting.RED),
-                success ? Component.empty() : Component.translatable(
-                        "gui.nimble_pattern.pattern_tag_terminal.tool." + reason));
+    public void applyProbability(String secondsText) {
+        if (isClientSide()) {
+            sendClientAction("applyProbability", secondsText);
+            return;
+        }
+        if (secondsText.isEmpty()) {
+            return;
+        }
+        long maxWaitingTicks = Long.parseLong(secondsText) * 20L;
+        if (maxWaitingTicks == 0) {
+            return;
+        }
+        for (int i = 0; i < inputPatternInv.size(); i++) {
+            var pattern = inputPatternInv.getStackInSlot(i).copy();
+            if (pattern.isEmpty()) {
+                continue;
+            }
+            NimblePatternTag.tagProbability(pattern, maxWaitingTicks);
+            if (NimblePatternTag.pushPatternBack(pattern, getPlayer().getServer())) {
+                inputPatternInv.setItemDirect(i, ItemStack.EMPTY);
+            } else {
+                inputPatternInv.setItemDirect(i, pattern);
+            }
+        }
+    }
+
+    public void clearProbability() {
+        if (isClientSide()) {
+            sendClientAction("clearProbability");
+            return;
+        }
+        for (int i = 0; i < inputPatternInv.size(); i++) {
+            var pattern = inputPatternInv.getStackInSlot(i).copy();
+            if (pattern.isEmpty()) {
+                continue;
+            }
+            NimblePatternTag.removeProbabilityTag(pattern);
+            inputPatternInv.setItemDirect(i, pattern);
+        }
     }
 
     private void sendFullUpdate(@Nullable IGrid grid) {

@@ -1,5 +1,5 @@
 {
-  "__comment": "Describes the parts of the pattern tag terminal that relate to tag tools patterns",
+  "__comment": "Describes the parts of the pattern tag terminal that relate to tag tool patterns",
   "$schema": "../../schema.json",
   "widgets": {
     "toolTextField": {

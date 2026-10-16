@@ -11,14 +11,6 @@ public class ModZhCnLangProvider extends LanguageProvider {
 
     @Override
     protected void addTranslations() {
-        add("gui.nimble_pattern.pattern_tag_terminal.tool.success", "工具样板标记成功");
-        add("gui.nimble_pattern.pattern_tag_terminal.tool.failure", "工具样板标记失败");
-        add("gui.nimble_pattern.pattern_tag_terminal.tool.missing_tools", "请在工具槽中放入要标记的物品。");
-        add("gui.nimble_pattern.pattern_tag_terminal.tool.invalid_pattern", "请放入有效样板，且样板中的数量必须有效。");
-        add("gui.nimble_pattern.pattern_tag_terminal.tool.crafting_only", "仅支持工作台合成样板。");
-        add("gui.nimble_pattern.pattern_tag_terminal.tool.missing_input", "所选工具必须是每张样板的输入材料，且物品数据必须完全一致。");
-        add("gui.nimble_pattern.pattern_tag_terminal.tool.invalid_tool", "工具必须无法损坏并在合成后原样返还，或产出同种物品且数量多于投入（如模板复制）。");
-        add("gui.nimble_pattern.pattern_tag_terminal.tool.loop_conflict", "请先在循环页签清除循环标记，再标记工具样板。");
         add("itemGroup.nimble_pattern_tab", "灵巧样板");
 
         add("item.nimble_pattern.pattern_tag_terminal", "样板标记终端");
@@ -29,6 +21,7 @@ public class ModZhCnLangProvider extends LanguageProvider {
         add("gui.nimble_pattern.pattern_tag_terminal.tab.upgrade", "更新样板");
         add("gui.nimble_pattern.pattern_tag_terminal.tab.loop", "循环样板");
         add("gui.nimble_pattern.pattern_tag_terminal.tab.tool", "工具样板");
+        add("gui.nimble_pattern.pattern_tag_terminal.tab.probability", "概率样板");
 
         add("tooltip.nimble_pattern.fake_pattern", "假样板");
         add("tooltip.nimble_pattern.condition", "更新条件：%s");
@@ -83,5 +76,8 @@ public class ModZhCnLangProvider extends LanguageProvider {
         add("gui.nimble_pattern.tool_changed", "工具合成后会有变化");
         add("gui.nimble_pattern.tool_is_not_input", "选定工具不是样板的输入");
         add("gui.nimble_pattern.tool_is_damageable", "工具会损坏");
+
+        add("tooltip.nimble_pattern.probability_pattern", "概率样板");
+        add("gui.nimble_pattern.pattern_tag_terminal.probability.waiting_time", "最长等待秒数");
     }
 }

@@ -38,6 +38,14 @@ public abstract class EncodedPatternItemMixin {
                         .withStyle(ChatFormatting.GRAY));
             }
         }
+        var maxWaitingTicks = NimblePatternTag.getProbability(stack);
+        if (maxWaitingTicks > 0) {
+            lines.add(Component.translatable("tooltip.nimble_pattern.probability_pattern").withStyle(ChatFormatting.AQUA));
+            lines.add(Component.literal("  ")
+                    .append(Component.translatable("gui.nimble_pattern.pattern_tag_terminal.probability.waiting_time"))
+                    .append(": " + maxWaitingTicks / 20L + "s")
+                    .withStyle(ChatFormatting.GRAY));
+        }
 
         ResourceLocation condition = NimblePatternTag.getCondition(stack);
         if (condition == null) {
