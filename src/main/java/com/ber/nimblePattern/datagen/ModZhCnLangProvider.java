@@ -11,6 +11,7 @@ public class ModZhCnLangProvider extends LanguageProvider {
 
     @Override
     protected void addTranslations() {
+        add("message.nimble_pattern.probability_blocked", "概率合成卡住了，无法继续补做。原任务已保留，请检查材料和样板。");
         add("itemGroup.nimble_pattern_tab", "灵巧样板");
 
         add("item.nimble_pattern.pattern_tag_terminal", "样板标记终端");

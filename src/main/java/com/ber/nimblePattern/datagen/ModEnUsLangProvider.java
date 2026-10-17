@@ -11,6 +11,7 @@ public class ModEnUsLangProvider extends LanguageProvider {
 
     @Override
     protected void addTranslations() {
+        add("message.nimble_pattern.probability_blocked", "Probability crafting is stuck and automatic retries have stopped. The original job is retained; check its materials and patterns.");
         add("itemGroup.nimble_pattern_tab", "Nimble Pattern");
 
         add("item.nimble_pattern.pattern_tag_terminal", "Pattern Tag Terminal");

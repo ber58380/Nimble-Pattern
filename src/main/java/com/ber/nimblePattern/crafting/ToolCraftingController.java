@@ -37,13 +37,20 @@ public final class ToolCraftingController {
     }
 
     /**
+     * Return how many tools is already held by the CPU
+     */
+    public long getHeldAmount(AEKey key) {
+        return reserved.list.get(key) + borrowed.list.get(key);
+    }
+
+    /**
      * Reserve target amount of tools for crafting
      */
     public void reserve(KeyCounter tools, ListCraftingInventory cpu) {
         for (var tool : tools) {
             var key = tool.getKey();
             // tool.getLongValue() is the required amount of tool
-            long extracted = cpu.extract(tool.getKey(), Math.max(0, tool.getLongValue() - reserved.list.get(key) - borrowed.list.get(key)), Actionable.MODULATE);
+            long extracted = cpu.extract(tool.getKey(), Math.max(0, tool.getLongValue() - getHeldAmount(key)), Actionable.MODULATE);
             reserved.insert(key, extracted, Actionable.MODULATE);
         }
     }

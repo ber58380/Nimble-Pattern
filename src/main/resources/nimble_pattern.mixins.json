@@ -10,6 +10,7 @@
     "ae2.CraftingSimulationStateMixin",
     "ae2.CraftingTreeProcessMixin",
     "ae2.DelegatingMEInventoryAccessorMixin",
+    "ae2.ElapsedTimeTrackerAccessorMixin",
     "ae2.EncodedPatternItemMixin",
     "ae2.ExecutingCraftingJobAccessorMixin",
     "ae2.ExecutingCraftingJobMixin",
