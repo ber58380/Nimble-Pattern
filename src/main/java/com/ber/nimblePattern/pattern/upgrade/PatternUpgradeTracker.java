@@ -1,6 +1,7 @@
 package com.ber.nimblePattern.pattern.upgrade;
 
 import appeng.api.inventories.InternalInventory;
+import appeng.api.stacks.AEKey;
 import appeng.helpers.patternprovider.PatternContainer;
 import appeng.hooks.ticking.TickHandler;
 import appeng.items.tools.powered.WirelessTerminalItem;
@@ -8,7 +9,6 @@ import appeng.util.SearchInventoryEvent;
 import com.ber.nimblePattern.network.NimblePatternNetwork;
 import com.ber.nimblePattern.network.PatternUpgradeNotificationPacket;
 import com.ber.nimblePattern.pattern.NimblePatternTag;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.network.PacketDistributor;
@@ -20,9 +20,8 @@ import static com.ber.nimblePattern.pattern.upgrade.UpgradeState.UPGRADE;
 
 public final class PatternUpgradeTracker {
     private static final PatternUpgradeTracker INSTANCE = new PatternUpgradeTracker();
-    private final Set<ResourceLocation> trackedConditions = new HashSet<>();
-    private final LinkedHashSet<ResourceLocation> pendingIds = new LinkedHashSet<>();
-    private final Map<ResourceLocation, List<Location>> byCondition = new HashMap<>();
+    private final LinkedHashSet<AEKey> pendingConditions = new LinkedHashSet<>();
+    private final Map<AEKey, List<Location>> byCondition = new HashMap<>();
     private final Map<InternalInventory, InventoryIndex> inventories = new IdentityHashMap<>();
     private int refreshTicks;
 
@@ -33,13 +32,9 @@ public final class PatternUpgradeTracker {
         return INSTANCE;
     }
 
-    public synchronized boolean isEmpty() {
-        return trackedConditions.isEmpty();
-    }
-
-    public synchronized void enqueueIfTracked(ResourceLocation id) {
-        if (id != null) {
-            pendingIds.add(id);
+    public synchronized void enqueueCondition(AEKey what) {
+        if (what != null) {
+            pendingConditions.add(what.dropSecondary());
         }
     }
 
@@ -75,13 +70,13 @@ public final class PatternUpgradeTracker {
                         if (old != null) {
                             removeIndex(old);
                         }
-                        var conditions = new HashMap<ResourceLocation, List<Location>>();
+                        var conditions = new HashMap<AEKey, List<Location>>();
                         for (int i = 0; i < snapshot.size(); i++) {
                             var pattern = snapshot.getStack(i);
                             if (pattern.isEmpty()) {
                                 continue;
                             }
-                            ResourceLocation condition = NimblePatternTag.getCondition(pattern);
+                            AEKey condition = NimblePatternTag.getCondition(pattern);
                             if (condition != null) {
                                 conditions.computeIfAbsent(condition, k -> new ArrayList<>()).add(new Location(inv, i));
                             }
@@ -101,12 +96,10 @@ public final class PatternUpgradeTracker {
                 iterator.remove();
             }
         }
-        trackedConditions.clear();
-        trackedConditions.addAll(byCondition.keySet());
     }
 
-    private void notifyPlayers(Map<ResourceLocation, Integer> upgradeConuter) {
-        if (upgradeConuter.isEmpty()) {
+    private void notifyPlayers(Map<AEKey, Integer> upgradeCounter) {
+        if (upgradeCounter.isEmpty()) {
             return;
         }
         var server = ServerLifecycleHooks.getCurrentServer();
@@ -124,7 +117,7 @@ public final class PatternUpgradeTracker {
                 }
             }
             if (hasWireless) {
-                for (var entry : upgradeConuter.entrySet()) {
+                for (var entry : upgradeCounter.entrySet()) {
                     NimblePatternNetwork.CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new PatternUpgradeNotificationPacket(entry.getKey(), entry.getValue()));
                 }
             }
@@ -138,12 +131,12 @@ public final class PatternUpgradeTracker {
         }
         refreshTicks = 0;
         rebuildIndex();
-        if (pendingIds.isEmpty()) {
+        if (pendingConditions.isEmpty()) {
             return;
         }
-        Set<ResourceLocation> toProcess = new LinkedHashSet<>(pendingIds);
-        pendingIds.clear();
-        Map<ResourceLocation, Integer> upgradeCounter = new HashMap<>();
+        Set<AEKey> toProcess = new LinkedHashSet<>(pendingConditions);
+        pendingConditions.clear();
+        Map<AEKey, Integer> upgradeCounter = new HashMap<>();
         for (var condition : toProcess) {
             for (var location : byCondition.getOrDefault(condition, List.of())) {
                 var inv = location.inventory();
@@ -164,8 +157,7 @@ public final class PatternUpgradeTracker {
     }
 
     public synchronized void clear() {
-        trackedConditions.clear();
-        pendingIds.clear();
+        pendingConditions.clear();
         byCondition.clear();
         inventories.clear();
         refreshTicks = 0;
@@ -175,6 +167,6 @@ public final class PatternUpgradeTracker {
     private record Location(InternalInventory inventory, int slot) {
     }
 
-    private record InventoryIndex(long revision, Map<ResourceLocation, List<Location>> conditions) {
+    private record InventoryIndex(long revision, Map<AEKey, List<Location>> conditions) {
     }
 }

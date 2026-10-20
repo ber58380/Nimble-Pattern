@@ -2,6 +2,8 @@ package com.ber.nimblePattern.pattern;
 
 import appeng.api.crafting.PatternDetailsHelper;
 import appeng.api.inventories.InternalInventory;
+import appeng.api.stacks.AEFluidKey;
+import appeng.api.stacks.AEItemKey;
 import appeng.api.stacks.AEKey;
 import appeng.api.stacks.GenericStack;
 import appeng.blockentity.networking.CableBusBlockEntity;
@@ -22,7 +24,6 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraftforge.registries.ForgeRegistries;
 
 import java.util.*;
 
@@ -197,10 +198,9 @@ public class NimblePatternTag {
         tagPattern(pattern, SOURCE_TAG, sourceTag);
     }
 
-    // TODO: 存ID改为存GenericStack可能更好
-    public static void tagUpgrade(ItemStack pattern, ResourceLocation condition) {
+    public static void tagUpgrade(ItemStack pattern, AEKey condition) {
         CompoundTag upgradeTag = new CompoundTag();
-        upgradeTag.putString("condition", condition.toString());
+        upgradeTag.put("condition", condition.toTagGeneric());
         upgradeTag.putByte("status", (byte) LATEST.ordinal());
         tagPattern(pattern, UPGRADE_TAG, upgradeTag);
     }
@@ -307,21 +307,17 @@ public class NimblePatternTag {
         return null;
     }
 
-    public static ResourceLocation getCondition(ItemStack pattern) {
+    public static AEKey getCondition(ItemStack pattern) {
         CompoundTag root = pattern.getTagElement(ROOT);
         if (root == null || !root.contains(UPGRADE_TAG, Tag.TAG_COMPOUND)) {
             return null;
         }
         CompoundTag upgradeTag = root.getCompound(UPGRADE_TAG);
-        String value = upgradeTag.getString("condition");
-        if (value.isBlank()) {
+        if (!upgradeTag.contains("condition", Tag.TAG_COMPOUND)) {
             return null;
         }
-        ResourceLocation condition = ResourceLocation.tryParse(value);
-        if (condition == null) {
-            return null;
-        }
-        return ForgeRegistries.ITEMS.containsKey(condition) || ForgeRegistries.FLUIDS.containsKey(condition) ? condition : null;
+        AEKey condition = AEKey.fromTagGeneric(upgradeTag.getCompound("condition"));
+        return condition instanceof AEItemKey || condition instanceof AEFluidKey ? condition : null;
     }
 
     public static UpgradeState getStatus(ItemStack pattern) {

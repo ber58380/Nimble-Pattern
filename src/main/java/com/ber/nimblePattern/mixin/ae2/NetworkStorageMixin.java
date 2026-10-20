@@ -8,7 +8,6 @@ import appeng.api.storage.MEStorage;
 import appeng.me.storage.NetworkStorage;
 import com.ber.nimblePattern.item.storage.LoopStorageCellVisibility;
 import com.ber.nimblePattern.pattern.upgrade.PatternUpgradeTracker;
-import net.minecraft.resources.ResourceLocation;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -37,8 +36,7 @@ public class NetworkStorageMixin {
         if (inserted <= 0) {
             return;
         }
-        ResourceLocation id = what.getId();
-        PatternUpgradeTracker.instance().enqueueIfTracked(id);
+        PatternUpgradeTracker.instance().enqueueCondition(what);
     }
 
     /**

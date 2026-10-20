@@ -1,11 +1,8 @@
 package com.ber.nimblePattern.client.gui.search;
 
-import com.ber.nimblePattern.compat.jecharacters.PinInHelper;
-import com.ber.nimblePattern.pattern.NimblePatternTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
-import net.minecraftforge.registries.ForgeRegistries;
 
 import java.util.HashMap;
 import java.util.Locale;
@@ -25,20 +22,21 @@ final class ConditionSearchPredicate implements Predicate<ItemStack> {
         if (term.isEmpty()) {
             return true;
         }
-        ResourceLocation condition = NimblePatternTag.getCondition(pattern);
-        if (condition == null) {
-            return false;
-        }
-        Component name = cachedID.computeIfAbsent(condition, id -> {
-            if (ForgeRegistries.ITEMS.containsKey(id)) {
-                return Component.translatable(ForgeRegistries.ITEMS.getValue(id).getDescriptionId());
-            }
-            if (ForgeRegistries.FLUIDS.containsKey(id)) {
-                return Component.translatable(ForgeRegistries.FLUIDS.getValue(id).getFluidType().getDescriptionId());
-            }
-            return Component.literal(id.toString());
-        });
-        String lowerName = name.getString().toLowerCase(Locale.ROOT);
-        return lowerName.contains(term) || PinInHelper.contains(lowerName, term);
+        return false;
+//        ResourceLocation condition = NimblePatternTag.getCondition(pattern);
+//        if (condition == null) {
+//            return false;
+//        }
+//        Component name = cachedID.computeIfAbsent(condition, id -> {
+//            if (ForgeRegistries.ITEMS.containsKey(id)) {
+//                return Component.translatable(ForgeRegistries.ITEMS.getValue(id).getDescriptionId());
+//            }
+//            if (ForgeRegistries.FLUIDS.containsKey(id)) {
+//                return Component.translatable(ForgeRegistries.FLUIDS.getValue(id).getFluidType().getDescriptionId());
+//            }
+//            return Component.literal(id.toString());
+//        });
+//        String lowerName = name.getString().toLowerCase(Locale.ROOT);
+//        return lowerName.contains(term) || PinInHelper.contains(lowerName, term);
     }
 }

@@ -83,7 +83,6 @@ public class PatternTagTermMenu extends AEBaseMenu {
     private final InternalInventory conditionItemInv;
     private final InternalInventory loopEndpointInv;
     private final InternalInventory loopStorageCellInv;
-    // TODO: FakeSlot对于流体会显示数字
     private final InternalInventory toolInputInv;
     private final RestrictedInputSlot[] inputPatternSlots = new RestrictedInputSlot[INPUT_PATTERN_SLOTS];
     private final FakeSlot conditionItemSlot;
@@ -335,7 +334,7 @@ public class PatternTagTermMenu extends AEBaseMenu {
         if (!(key instanceof AEItemKey) && !(key instanceof AEFluidKey)) {
             return;
         }
-        var condition = key.getId();
+        var condition = key.dropSecondary();
         for (int i = 0; i < inputPatternInv.size(); i++) {
             var pattern = inputPatternInv.getStackInSlot(i).copy();
             if (pattern.isEmpty()) {
