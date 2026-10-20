@@ -11,28 +11,21 @@ import net.minecraft.util.FormattedCharSequence;
 
 import java.util.List;
 
-public final class LoopSeedLostToast implements Toast {
+public final class NimbleToast implements Toast {
     private static final long TIME_VISIBLE = 5000;
     private static final int TITLE_COLOR = 0xFF500050;
     private static final int TEXT_COLOR = 0xFF000000;
 
+    private final Component title;
     private final AEKey what;
     private final List<FormattedCharSequence> lines;
     private final int height;
-    private final String title;
 
-    public LoopSeedLostToast(AEKey what) {
-        this(what, "toast.nimble_pattern.loop_seed_lost_title", "toast.nimble_pattern.loop_seed_lost_content");
-    }
-
-    public LoopSeedLostToast(AEKey what, String title, String content) {
+    public NimbleToast(AEKey what, Component title, Component content) {
         this.what = what;
-        this.title = title;
+        this.title = title.copy();
         var font = Minecraft.getInstance().font;
-        var text = Component.translatable(
-                content,
-                AEKeyRendering.getDisplayName(what));
-        this.lines = font.split(text, width() - 35);
+        this.lines = font.split(content, width() - 35);
         this.height = Toast.super.height() + (lines.size() - 1) * font.lineHeight;
     }
 
@@ -47,7 +40,7 @@ public final class LoopSeedLostToast implements Toast {
         }
         graphics.blit(TEXTURE, 0, height - 8, 0, 56, width(), 8);
         graphics.drawString(font,
-                Component.translatable(title),
+                title,
                 30, 7, TITLE_COLOR, false);
         int lineY = 18;
         for (var line : lines) {

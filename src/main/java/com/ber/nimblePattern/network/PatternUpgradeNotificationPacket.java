@@ -1,10 +1,12 @@
 package com.ber.nimblePattern.network;
 
+import appeng.api.client.AEKeyRendering;
 import appeng.api.stacks.AEKey;
 import com.ber.nimblePattern.client.gui.PatternTagTermScreen;
-import com.ber.nimblePattern.client.gui.widgets.PatternUpgradeToast;
+import com.ber.nimblePattern.client.gui.widgets.NimbleToast;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.chat.Component;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.fml.DistExecutor;
 import net.minecraftforge.network.NetworkEvent;
@@ -46,7 +48,11 @@ public class PatternUpgradeNotificationPacket {
             if (minecraft.player == null || msg.condition == null) {
                 return;
             }
-            minecraft.getToasts().addToast(new PatternUpgradeToast(msg.condition, msg.count));
+            minecraft.getToasts().addToast(
+                    new NimbleToast(msg.condition,
+                            Component.translatable("toast.nimble_pattern.pattern_upgrade_title"),
+                            Component.translatable("toast.nimble_pattern.pattern_ugprade_content", AEKeyRendering.getDisplayName(msg.condition), msg.count)
+                    ));
         }
     }
 }

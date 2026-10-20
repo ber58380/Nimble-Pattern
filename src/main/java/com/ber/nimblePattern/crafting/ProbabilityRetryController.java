@@ -1,7 +1,6 @@
 package com.ber.nimblePattern.crafting;
 
 import appeng.api.config.Actionable;
-import appeng.api.features.IPlayerRegistry;
 import appeng.api.networking.crafting.CalculationStrategy;
 import appeng.api.networking.crafting.ICraftingPlan;
 import appeng.api.stacks.AEKey;
@@ -13,9 +12,10 @@ import appeng.crafting.inv.ListCraftingInventory;
 import appeng.me.cluster.implementations.CraftingCPUCluster;
 import appeng.me.service.CraftingService;
 import com.ber.nimblePattern.mixin.ae2.ExecutingCraftingJobAccessorMixin;
+import com.ber.nimblePattern.network.ProbabilityBlockedNotificationPacket;
+import com.ber.nimblePattern.network.WirelessNotification;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
-import net.minecraft.network.chat.Component;
 
 import java.util.concurrent.Future;
 
@@ -94,19 +94,17 @@ public final class ProbabilityRetryController {
         requested = null;
     }
 
-    private void fail(ExecutingCraftingJob job, Throwable error) {
+    private void fail(ExecutingCraftingJob job) {
         if (stopped || isCancelled(job)) {
             return;
         }
         stopped = true;
         cluster.markDirty();
-        var playerId = ((ExecutingCraftingJobAccessorMixin) job).nimblePattern$getPlayerId();
-        var server = cluster.getLevel().getServer();
-        var player = playerId == null || server == null ? null : IPlayerRegistry.getConnected(server, playerId);
-        if (player != null) {
-            // TODO:更改消息提示
-            player.sendSystemMessage(Component.translatable("message.nimble_pattern.probability_blocked"));
+        var output = ((ExecutingCraftingJobAccessorMixin) job).nimblePattern$getFinalOutput();
+        if (output == null) {
+            return;
         }
+        WirelessNotification.broadcast(cluster.getGrid(), new ProbabilityBlockedNotificationPacket(output.what()));
     }
 
     /**
@@ -206,19 +204,19 @@ public final class ProbabilityRetryController {
                     || !plan.finalOutput().what().equals(target.what())
                     || plan.finalOutput().amount() < target.amount()
                     || plan.bytes() > cluster.getAvailableStorage()) {
-                fail(job, null);
+                fail(job);
                 return null;
             }
             // A removed provider can invalidate the asynchronous plan even if all materials remain.
             for (var pattern : plan.patternTimes().keySet()) {
                 if (!((CraftingService) cluster.getGrid().getCraftingService()).getProviders(pattern).iterator().hasNext()) {
-                    fail(job, null);
+                    fail(job);
                     return null;
                 }
             }
             var supplement = ProbabilityCraftingSupplement.prepare(job, plan, target);
             if (!acquireMaterials(plan, inventory)) {
-                fail(job, null);
+                fail(job);
                 return null;
             }
             // Apply supplement crafting plan to the CPU, add extra crafting steps
@@ -229,9 +227,9 @@ public final class ProbabilityRetryController {
             return plan;
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            fail(job, e);
+            fail(job);
         } catch (Exception | LinkageError e) {
-            fail(job, e);
+            fail(job);
         }
         return null;
     }
@@ -271,7 +269,7 @@ public final class ProbabilityRetryController {
                         CalculationStrategy.REPORT_MISSING_ITEMS);
             } catch (RuntimeException e) {
                 cancelCalculation();
-                fail(job, e);
+                fail(job);
             }
             return null;
         }
@@ -284,7 +282,7 @@ public final class ProbabilityRetryController {
     public long reuseWaiting(AEKey key, long amount, Actionable mode) {
         return replacementCredits.extract(key, amount, mode);
     }
-    
+
     public CompoundTag save() {
         var tag = new CompoundTag();
         tag.putBoolean("stopped", stopped);

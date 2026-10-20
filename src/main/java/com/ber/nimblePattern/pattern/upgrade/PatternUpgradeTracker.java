@@ -1,18 +1,13 @@
 package com.ber.nimblePattern.pattern.upgrade;
 
 import appeng.api.inventories.InternalInventory;
+import appeng.api.networking.IGrid;
 import appeng.api.stacks.AEKey;
 import appeng.helpers.patternprovider.PatternContainer;
 import appeng.hooks.ticking.TickHandler;
-import appeng.items.tools.powered.WirelessTerminalItem;
-import appeng.util.SearchInventoryEvent;
-import com.ber.nimblePattern.network.NimblePatternNetwork;
 import com.ber.nimblePattern.network.PatternUpgradeNotificationPacket;
+import com.ber.nimblePattern.network.WirelessNotification;
 import com.ber.nimblePattern.pattern.NimblePatternTag;
-import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.item.ItemStack;
-import net.minecraftforge.network.PacketDistributor;
-import net.minecraftforge.server.ServerLifecycleHooks;
 
 import java.util.*;
 
@@ -64,7 +59,7 @@ public final class PatternUpgradeTracker {
                         }
                         var snapshot = PatternInventorySnapshots.getSnapshot(inv, true);
                         var old = inventories.get(inv);
-                        if (old != null && old.revision == snapshot.getRevision()) {
+                        if (old != null && old.revision == snapshot.getRevision() && old.grid() == grid) {
                             continue;
                         }
                         if (old != null) {
@@ -81,7 +76,7 @@ public final class PatternUpgradeTracker {
                                 conditions.computeIfAbsent(condition, k -> new ArrayList<>()).add(new Location(inv, i));
                             }
                         }
-                        inventories.put(inv, new InventoryIndex(snapshot.getRevision(), conditions));
+                        inventories.put(inv, new InventoryIndex(snapshot.getRevision(), grid, conditions));
                         conditions.forEach((condition, locations) ->
                                 byCondition.computeIfAbsent(condition, k -> new ArrayList<>()).addAll(locations));
                     }
@@ -98,33 +93,6 @@ public final class PatternUpgradeTracker {
         }
     }
 
-    private void notifyPlayers(Map<AEKey, Integer> upgradeCounter) {
-        if (upgradeCounter.isEmpty()) {
-            return;
-        }
-        var server = ServerLifecycleHooks.getCurrentServer();
-        if (server == null) {
-            return;
-        }
-        for (ServerPlayer player : server.getPlayerList().getPlayers()) {
-            boolean hasWireless = false;
-            for (ItemStack stack : SearchInventoryEvent.getItems(player)) {
-                if (!stack.isEmpty() && stack.getItem() instanceof WirelessTerminalItem wirelessTerminalItem
-                        && wirelessTerminalItem.getAECurrentPower(stack) > 0
-                        && wirelessTerminalItem.getLinkedPosition(stack) != null) {
-                    hasWireless = true;
-                    break;
-                }
-            }
-            if (hasWireless) {
-                for (var entry : upgradeCounter.entrySet()) {
-                    NimblePatternNetwork.CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new PatternUpgradeNotificationPacket(entry.getKey(), entry.getValue()));
-                }
-            }
-        }
-
-    }
-
     public synchronized void updateStatus() {
         if (++refreshTicks < 20) {
             return;
@@ -136,11 +104,12 @@ public final class PatternUpgradeTracker {
         }
         Set<AEKey> toProcess = new LinkedHashSet<>(pendingConditions);
         pendingConditions.clear();
-        Map<AEKey, Integer> upgradeCounter = new HashMap<>();
+        Map<IGrid, Map<AEKey, Integer>> upgradeCounter = new IdentityHashMap<>();
         for (var condition : toProcess) {
             for (var location : byCondition.getOrDefault(condition, List.of())) {
                 var inv = location.inventory();
-                if (location.slot() >= inv.size()) {
+                var index = inventories.get(inv);
+                if (index == null || location.slot() >= inv.size()) {
                     continue;
                 }
                 var original = inv.getStackInSlot(location.slot());
@@ -150,10 +119,13 @@ public final class PatternUpgradeTracker {
                 var pattern = original.copy();
                 NimblePatternTag.tagStatus(pattern);
                 inv.setItemDirect(location.slot(), pattern);
-                upgradeCounter.merge(condition, 1, Integer::sum);
+                upgradeCounter.computeIfAbsent(index.grid, ignored -> new HashMap<>())
+                        .merge(condition, 1, Integer::sum);
             }
         }
-        notifyPlayers(upgradeCounter);
+        upgradeCounter.forEach((grid, counts) ->
+                counts.forEach((condition, count) ->
+                        WirelessNotification.broadcast(grid, new PatternUpgradeNotificationPacket(condition, count))));
     }
 
     public synchronized void clear() {
@@ -167,6 +139,6 @@ public final class PatternUpgradeTracker {
     private record Location(InternalInventory inventory, int slot) {
     }
 
-    private record InventoryIndex(long revision, Map<AEKey, List<Location>> conditions) {
+    private record InventoryIndex(long revision, IGrid grid, Map<AEKey, List<Location>> conditions) {
     }
 }

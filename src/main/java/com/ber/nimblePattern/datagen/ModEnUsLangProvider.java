@@ -11,7 +11,6 @@ public class ModEnUsLangProvider extends LanguageProvider {
 
     @Override
     protected void addTranslations() {
-        add("message.nimble_pattern.probability_blocked", "Probability crafting is stuck and automatic retries have stopped. The original job is retained; check its materials and patterns.");
         add("itemGroup.nimble_pattern_tab", "Nimble Pattern");
 
         add("item.nimble_pattern.pattern_tag_terminal", "Pattern Tag Terminal");
@@ -80,5 +79,7 @@ public class ModEnUsLangProvider extends LanguageProvider {
 
         add("tooltip.nimble_pattern.probability_pattern", "Probability Pattern");
         add("gui.nimble_pattern.pattern_tag_terminal.probability.waiting_time", "Maximum waiting seconds");
+        add("toast.nimble_pattern.probability_blocked_title", "Probability crafting is blocked");
+        add("toast.nimble_pattern.probability_blocked_content", "Could not retry crafting %s, please check materials, recipes and CPU capacity.");
     }
 }

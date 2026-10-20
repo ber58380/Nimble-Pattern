@@ -2,7 +2,6 @@ package com.ber.nimblePattern.mixin.ae2;
 
 import appeng.api.config.Actionable;
 import appeng.api.crafting.IPatternDetails;
-import appeng.api.features.IPlayerRegistry;
 import appeng.api.networking.IGrid;
 import appeng.api.networking.crafting.ICraftingPlan;
 import appeng.api.networking.crafting.ICraftingProvider;
@@ -21,14 +20,13 @@ import appeng.me.cluster.implementations.CraftingCPUCluster;
 import appeng.me.service.CraftingService;
 import com.ber.nimblePattern.crafting.*;
 import com.ber.nimblePattern.network.LoopSeedLostNotificationPacket;
-import com.ber.nimblePattern.network.NimblePatternNetwork;
+import com.ber.nimblePattern.network.WirelessNotification;
 import com.ber.nimblePattern.pattern.PatternMapping;
 import com.ber.nimblePattern.pattern.wrapper.NimbleCraftingPattern;
 import com.ber.nimblePattern.pattern.wrapper.NimbleProcessingPattern;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.world.level.Level;
-import net.minecraftforge.network.PacketDistributor;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -421,15 +419,10 @@ public class CraftingCpuLogicMixin {
 
     @Unique
     private void notifyLoopSeed(AEKey key, boolean returnFailed) {
-        if (job == null) return;
-        var playerId = ((ExecutingCraftingJobAccessorMixin) job).nimblePattern$getPlayerId();
-        var server = cluster.getLevel().getServer();
-        var player = playerId != null && server != null
-                ? IPlayerRegistry.getConnected(server, playerId) : null;
-        if (player != null) {
-            NimblePatternNetwork.CHANNEL.send(PacketDistributor.PLAYER.with(() -> player),
-                    new LoopSeedLostNotificationPacket(key, returnFailed));
+        if (job == null) {
+            return;
         }
+        WirelessNotification.broadcast(cluster.getGrid(), new LoopSeedLostNotificationPacket(key, returnFailed));
     }
 
     @Unique
