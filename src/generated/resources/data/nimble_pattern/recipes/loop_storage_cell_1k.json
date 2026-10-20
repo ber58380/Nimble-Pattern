@@ -1,0 +1,60 @@
+{
+  "type": "forge:conditional",
+  "recipes": [
+    {
+      "conditions": [
+        {
+          "type": "forge:mod_loaded",
+          "modid": "gtceu"
+        }
+      ],
+      "recipe": {
+        "type": "minecraft:crafting_shapeless",
+        "category": "misc",
+        "ingredients": [
+          {
+            "item": "ae2:item_storage_cell_1k"
+          },
+          {
+            "item": "ae2:fluid_storage_cell_1k"
+          },
+          {
+            "item": "gtceu:crystal_cpu"
+          }
+        ],
+        "result": {
+          "item": "nimble_pattern:loop_storage_cell_1k"
+        }
+      }
+    },
+    {
+      "conditions": [
+        {
+          "type": "forge:not",
+          "value": {
+            "type": "forge:mod_loaded",
+            "modid": "gtceu"
+          }
+        }
+      ],
+      "recipe": {
+        "type": "minecraft:crafting_shapeless",
+        "category": "misc",
+        "ingredients": [
+          {
+            "item": "ae2:item_storage_cell_1k"
+          },
+          {
+            "item": "ae2:fluid_storage_cell_1k"
+          },
+          {
+            "item": "minecraft:amethyst_shard"
+          }
+        ],
+        "result": {
+          "item": "nimble_pattern:loop_storage_cell_1k"
+        }
+      }
+    }
+  ]
+}
