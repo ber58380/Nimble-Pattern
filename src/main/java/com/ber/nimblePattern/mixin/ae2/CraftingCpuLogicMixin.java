@@ -20,6 +20,7 @@ import appeng.crafting.inv.ListCraftingInventory;
 import appeng.me.cluster.implementations.CraftingCPUCluster;
 import appeng.me.service.CraftingService;
 import com.ber.nimblePattern.crafting.*;
+import com.ber.nimblePattern.compat.gtceu.GTMachineTracking;
 import com.ber.nimblePattern.network.LoopSeedLostNotificationPacket;
 import com.ber.nimblePattern.network.NimblePatternNetwork;
 import com.ber.nimblePattern.pattern.PatternMapping;
@@ -28,6 +29,8 @@ import com.ber.nimblePattern.pattern.wrapper.NimbleProcessingPattern;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.world.level.Level;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraftforge.fml.ModList;
 import net.minecraftforge.network.PacketDistributor;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Final;
@@ -121,6 +124,7 @@ public class CraftingCpuLogicMixin {
     private boolean trackCurrentPattern(ICraftingProvider provider, IPatternDetails details, KeyCounter[] craftingContainer) {
         long operations = CraftingBatchDispatch.take(details);
         boolean result;
+        boolean registeredProbability = false;
         if (details instanceof NimbleProcessingPattern npp && npp.isLoopComposite()) {
             if (loopController == null) {
                 loopController = new LoopCraftingController(cluster);
@@ -132,16 +136,29 @@ public class CraftingCpuLogicMixin {
             }
         } else if (details instanceof NimbleCraftingPattern ncp && ncp.isToolPattern()) {
             result = getOrCreateToolController().push(ncp, provider, craftingContainer, cluster.getLevel());
+        } else if (details instanceof NimbleProcessingPattern npp && npp.isProbabilityPattern()
+                && ModList.get().isLoaded("gtceu")) {
+            long beforePush = GTMachineTracking.sequence();
+            try (var capture = ProbabilityDispatchContext.open()) {
+                result = provider.pushPattern(PatternMapping.getOriginalPattern(provider, details), craftingContainer);
+                if (result) {
+                    registeredProbability = GTMachineTracking.register((ServerLevel) cluster.getLevel(),
+                            getOrCreateProbabilityTrackingController(), npp, operations, capture, beforePush);
+                }
+            }
         } else {
             result = provider.pushPattern(PatternMapping.getOriginalPattern(provider, details), craftingContainer);
         }
         currentPattern = result && details instanceof NimbleProcessingPattern npp ? npp : null;
 
         // TODO:后续要处理概率样板和假样板、循环样板的组合关系
-        if (currentPattern != null && currentPattern.isProbabilityPattern()) {
-            getOrCreateProbabilityTrackingController().dispatched(
+        if (currentPattern != null && currentPattern.isProbabilityPattern() && !registeredProbability) {
+            getOrCreateProbabilityTrackingController().dispatchedTimeout(
                     currentPattern.getDefinition(), new GenericStack[]{currentPattern.getPrimaryOutput()},
                     operations, currentPattern.getMaxWaitingTicks());
+            cluster.markDirty();
+        }
+        if (registeredProbability) {
             cluster.markDirty();
         }
         return result;
@@ -264,6 +281,9 @@ public class CraftingCpuLogicMixin {
     private void stopProbability() {
         lastProbabilityGameTick = -1;
         if (probabilityTrackingController != null) {
+            if (ModList.get().isLoaded("gtceu")) {
+                GTMachineTracking.release(probabilityTrackingController);
+            }
             probabilityTrackingController.release();
             probabilityTrackingController = null;
         }
@@ -303,7 +323,7 @@ public class CraftingCpuLogicMixin {
             tag.remove("loopController");
         }
         if (probabilityTrackingController != null) {
-            tag.put("probabilityTrackingController", probabilityTrackingController.save());
+            tag.put("probabilityTrackingController", probabilityTrackingController.save(cluster.getLevel().getGameTime()));
         } else {
             tag.remove("probabilityTrackingController");
         }
@@ -316,6 +336,9 @@ public class CraftingCpuLogicMixin {
 
     @Inject(method = "readFromNBT", at = @At("TAIL"))
     private void injectReadFromNBT(CompoundTag tag, CallbackInfo ci) {
+        if (probabilityTrackingController != null && ModList.get().isLoaded("gtceu")) {
+            GTMachineTracking.release(probabilityTrackingController);
+        }
         if (probabilityRetryController != null) {
             probabilityRetryController.release();
         }
@@ -505,7 +528,7 @@ public class CraftingCpuLogicMixin {
         if (probabilityTrackingController.isActive()) {
             probabilityTrackingController.reconcileWaiting(
                     ((ExecutingCraftingJobAccessorMixin) job).nimblePattern$getWaitingFor());
-            probabilityTrackingController.tick(elapsed);
+            probabilityTrackingController.tick(elapsed, gameTick);
             cluster.markDirty();
         }
         var plan = getOrCreateProbabilityRetryController().tick(

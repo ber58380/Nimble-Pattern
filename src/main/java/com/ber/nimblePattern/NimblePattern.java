@@ -8,6 +8,7 @@ import appeng.core.definitions.AEItems;
 import appeng.core.definitions.AEParts;
 import appeng.items.parts.PartModelsHelper;
 import com.ber.nimblePattern.compat.extendedae.ExtendedAECompat;
+import com.ber.nimblePattern.compat.gtceu.GTMachineTracking;
 import com.ber.nimblePattern.item.ModCreativeModeTabs;
 import com.ber.nimblePattern.item.ModItems;
 import com.ber.nimblePattern.item.storage.LoopStorageCellHandler;
@@ -24,6 +25,7 @@ import net.minecraftforge.event.server.ServerStoppedEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.fml.ModList;
 import net.minecraftforge.fml.config.ModConfig;
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
@@ -69,6 +71,9 @@ public class NimblePattern {
 
     @SubscribeEvent
     public void onServerStopped(ServerStoppedEvent event) {
+        if (ModList.get().isLoaded("gtceu")) {
+            GTMachineTracking.clear();
+        }
         PatternUpgradeTracker.instance().clear();
         PatternMapping.clear();
     }
@@ -76,6 +81,9 @@ public class NimblePattern {
     @SubscribeEvent
     public void onServerTick(TickEvent.ServerTickEvent event) {
         if (event.phase == TickEvent.Phase.END) {
+            if (ModList.get().isLoaded("gtceu")) {
+                GTMachineTracking.tick();
+            }
             PatternUpgradeTracker.instance().updateStatus();
         }
     }

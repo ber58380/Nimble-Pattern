@@ -94,7 +94,8 @@ public final class ProbabilityRetryController {
         requested = null;
     }
 
-    private void fail(ExecutingCraftingJob job, Throwable error) {
+    private void fail(ExecutingCraftingJob job) {
+        cancelCalculation();
         if (stopped || isCancelled(job)) {
             return;
         }
@@ -121,9 +122,10 @@ public final class ProbabilityRetryController {
         var missing = new KeyCounter();
         missing.addAll(plan.missingItems());
         for (var tool : ToolReservation.getToolReservation(plan.patternTimes())) {
-            long held = Math.min(tool.getLongValue(), tools.getHeldAmount(tool.getKey()));
-            used.remove(tool.getKey(), Math.min(held, used.get(tool.getKey())));
-            missing.remove(tool.getKey(), Math.min(held, missing.get(tool.getKey())));
+            var key = tool.getKey();
+            long held = Math.min(tool.getLongValue(), tools.getHeldAmount(key));
+            used.remove(key, Math.min(held, used.get(key)));
+            missing.remove(key, Math.min(held, missing.get(key)));
         }
         used.removeZeros();
         missing.removeZeros();
@@ -139,8 +141,9 @@ public final class ProbabilityRetryController {
     private boolean acquireMaterials(ICraftingPlan plan, ListCraftingInventory inventory) {
         var storage = cluster.getGrid().getStorageService().getInventory();
         for (var entry : plan.usedItems()) {
-            if (entry.getLongValue() > 0 && storage.extract(entry.getKey(), entry.getLongValue(),
-                    Actionable.SIMULATE, cluster.getSrc()) != entry.getLongValue()) {
+            long required = entry.getLongValue();
+            if (required > 0 && storage.extract(entry.getKey(), required,
+                    Actionable.SIMULATE, cluster.getSrc()) != required) {
                 return false;
             }
         }
@@ -148,14 +151,15 @@ public final class ProbabilityRetryController {
         boolean transferred = false;
         try {
             for (var entry : plan.usedItems()) {
-                if (entry.getLongValue() <= 0) {
+                long required = entry.getLongValue();
+                if (required <= 0) {
                     continue;
                 }
-                long amount = storage.extract(entry.getKey(), entry.getLongValue(), Actionable.MODULATE, cluster.getSrc());
+                long amount = storage.extract(entry.getKey(), required, Actionable.MODULATE, cluster.getSrc());
                 if (amount > 0) {
                     acquired.add(entry.getKey(), amount);
                 }
-                if (amount != entry.getLongValue()) {
+                if (amount != required) {
                     return false;
                 }
             }
@@ -194,8 +198,8 @@ public final class ProbabilityRetryController {
         try {
             var plan = future.get();
             // Use newly available stock before committing an old network snapshot.
-            collectExisting(job, inventory, target.what(), tracking.getTimedOutAmount(target.what()));
-            if (isCancelled(job) || tracking.getTimedOutAmount(target.what()) != target.amount()) {
+            collectExisting(job, inventory, target.what(), tracking.getRetryAmount(target.what()));
+            if (isCancelled(job) || tracking.getRetryAmount(target.what()) != target.amount()) {
                 return null;
             }
             plan = reuseReservedTools(plan, tools);
@@ -206,19 +210,20 @@ public final class ProbabilityRetryController {
                     || !plan.finalOutput().what().equals(target.what())
                     || plan.finalOutput().amount() < target.amount()
                     || plan.bytes() > cluster.getAvailableStorage()) {
-                fail(job, null);
+                fail(job);
                 return null;
             }
             // A removed provider can invalidate the asynchronous plan even if all materials remain.
+            var craftingService = (CraftingService) cluster.getGrid().getCraftingService();
             for (var pattern : plan.patternTimes().keySet()) {
-                if (!((CraftingService) cluster.getGrid().getCraftingService()).getProviders(pattern).iterator().hasNext()) {
-                    fail(job, null);
+                if (!craftingService.getProviders(pattern).iterator().hasNext()) {
+                    fail(job);
                     return null;
                 }
             }
             var supplement = ProbabilityCraftingSupplement.prepare(job, plan, target);
             if (!acquireMaterials(plan, inventory)) {
-                fail(job, null);
+                fail(job);
                 return null;
             }
             // Apply supplement crafting plan to the CPU, add extra crafting steps
@@ -229,9 +234,9 @@ public final class ProbabilityRetryController {
             return plan;
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            fail(job, e);
+            fail(job);
         } catch (Exception | LinkageError e) {
-            fail(job, e);
+            fail(job);
         }
         return null;
     }
@@ -241,14 +246,18 @@ public final class ProbabilityRetryController {
      */
     public ICraftingPlan tick(ExecutingCraftingJob job, ListCraftingInventory inventory,
                               ProbabilityTrackingController tracking, ToolCraftingController tools) {
-        if (stopped || isCancelled(job) || !cluster.isActive() || cluster.getGrid() == null) {
+        if (isCancelled(job)) {
+            cancelCalculation();
+            return null;
+        }
+        if (stopped || !cluster.isActive() || cluster.getGrid() == null) {
             return null;
         }
         // only calculate one supplement crafting once time
         if (calculation != null) {
             return submitCalculation(job, inventory, tracking, tools);
         }
-        for (var missing : tracking.getTimedOutOutputs()) {
+        for (var missing : tracking.getRetryOutputs()) {
             var key = missing.what();
             long amount = missing.amount();
             if (amount <= 0) {
@@ -259,7 +268,7 @@ public final class ProbabilityRetryController {
             if (isCancelled(job)) {
                 return null;
             }
-            amount = tracking.getTimedOutAmount(key);
+            amount = tracking.getRetryAmount(key);
             if (amount <= 0) {
                 continue;
             }
@@ -270,8 +279,7 @@ public final class ProbabilityRetryController {
                         cluster.getLevel(), cluster::getSrc, key, amount,
                         CalculationStrategy.REPORT_MISSING_ITEMS);
             } catch (RuntimeException e) {
-                cancelCalculation();
-                fail(job, e);
+                fail(job);
             }
             return null;
         }
@@ -284,7 +292,7 @@ public final class ProbabilityRetryController {
     public long reuseWaiting(AEKey key, long amount, Actionable mode) {
         return replacementCredits.extract(key, amount, mode);
     }
-    
+
     public CompoundTag save() {
         var tag = new CompoundTag();
         tag.putBoolean("stopped", stopped);

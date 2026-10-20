@@ -9,11 +9,11 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 /**
- * The probability controller to track and update states of all probability patterns
+ * The probability controller to track and update states of all probability patterns.
+ * It uses either an elapsed-time limit or a machine execution monitor to determine the failure of probability crafting.
  */
 public final class ProbabilityTrackingController {
     // A large crafting task may contain several probability crafting tasks,
@@ -26,32 +26,111 @@ public final class ProbabilityTrackingController {
 
     /**
      * When a probability crafting task is dispatched successfully, register it to track.
+     * Use the timeout tracking mechanism.
      */
-    public void dispatched(AEKey pattern, GenericStack[] outputs, long operations, long maxWaitingTicks) {
+    public void dispatchedTimeout(AEKey pattern, GenericStack[] outputs, long operations, long maxWaitingTicks) {
         if (operations <= 0 || maxWaitingTicks <= 0) {
             return;
         }
         ProbabilityAttempt attempt = null;
         for (var existing : probabilityAttempts) {
-            if (!existing.timeout && pattern.equals(existing.pattern)) {
+            if (existing.machineMonitor == null && existing.retryReason == RetryReason.NONE
+                    && pattern.equals(existing.pattern)) {
                 attempt = existing;
                 break;
             }
         }
         boolean newAttempt = attempt == null;
         if (newAttempt) {
-            attempt = new ProbabilityAttempt(pattern, 0);
+            attempt = new ProbabilityAttempt(UUID.randomUUID(), pattern);
         }
         attempt.maxWaitingTicks += maxWaitingTicks * operations;
-        for (var output : outputs) {
-            long amount = output.amount() * operations;
-            if (amount > 0) {
-                attempt.remaining.insert(output.what(), amount, Actionable.MODULATE);
-            }
-        }
+        attempt.registerOutputs(outputs, operations);
         if (newAttempt && !attempt.remaining.list.isEmpty()) {
             probabilityAttempts.add(attempt);
         }
+    }
+
+    private ProbabilityAttempt getAttempt(UUID batchId) {
+        for (var attempt : probabilityAttempts) {
+            if (attempt.batchId.equals(batchId)) {
+                return attempt;
+            }
+        }
+        return null;
+    }
+
+    /** A candidate machine batch keeps its own timeout until its first matching execution. */
+    public UUID dispatchedCandidate(AEKey pattern, GenericStack output, long operations, long waitingTicks) {
+        var attempt = new ProbabilityAttempt(UUID.randomUUID(), pattern);
+        attempt.maxWaitingTicks = waitingTicks * operations;
+        attempt.registerOutputs(new GenericStack[]{output}, operations);
+        probabilityAttempts.add(attempt);
+        return attempt.batchId;
+    }
+
+    public boolean isTracking(UUID batchId) {
+        var attempt = getAttempt(batchId);
+        return attempt != null && attempt.retryReason == RetryReason.NONE
+                && (attempt.machineMonitor == null || !attempt.machineMonitor.isInvalid());
+    }
+
+    public MachineExecutionMonitor activateMachine(UUID batchId, long operations) {
+        var attempt = getAttempt(batchId);
+        if (attempt == null || attempt.retryReason != RetryReason.NONE || operations <= 0) {
+            return null;
+        }
+        if (attempt.machineMonitor == null) {
+            attempt.machineMonitor = new MachineExecutionMonitor();
+            attempt.machineMonitor.append(operations);
+        }
+        return attempt.machineMonitor;
+    }
+
+    /**
+     * When a probability crafting task is dispatched successfully, register it to track.
+     * Use the machine tracking mechanism.
+     */
+    public void dispatchedMachine(UUID batchId, AEKey pattern, GenericStack[] outputs, long patternOperations, long machineOperations, long maxWaitingTicks, long gameTick) {
+        if (patternOperations <= 0 || machineOperations <= 0 || maxWaitingTicks <= 0) {
+            throw new IllegalArgumentException("Pattern operations, machine operations and waiting ticks must be positive");
+        }
+        ProbabilityAttempt attempt = getAttempt(batchId);
+        boolean newAttempt = attempt == null;
+        if (newAttempt) {
+            attempt = new ProbabilityAttempt(batchId, pattern);
+            attempt.machineMonitor = new MachineExecutionMonitor();
+        } else {
+            if (attempt.machineMonitor == null || !pattern.equals(attempt.pattern)) {
+                throw new IllegalStateException("Batch ID belongs to different tracking work");
+            }
+            if (attempt.retryReason != RetryReason.NONE) {
+                throw new IllegalStateException("A retrying batch must not receive new work");
+            }
+            if (attempt.machineMonitor.isInvalid() || attempt.machineMonitor.isSuspended()) {
+                throw new IllegalStateException("Machine tracking must be valid and active");
+            }
+            if (attempt.machineMonitor.tick(gameTick)) {
+                throw new IllegalStateException("Collection has finished and need to create a new batch");
+            }
+        }
+
+        attempt.machineMonitor.append(machineOperations);
+        attempt.maxWaitingTicks += maxWaitingTicks * patternOperations;
+        attempt.registerOutputs(outputs, patternOperations);
+        if (newAttempt && !attempt.remaining.list.isEmpty()) {
+            probabilityAttempts.add(attempt);
+        }
+    }
+
+    public Map<UUID, MachineExecutionMonitor> getMachineMonitors() {
+        var monitors = new HashMap<UUID, MachineExecutionMonitor>();
+        for (var attempt : probabilityAttempts) {
+            if (attempt.machineMonitor != null) {
+                monitors.put(attempt.batchId, attempt.machineMonitor);
+            }
+        }
+        return Map.copyOf(monitors);
     }
 
     /**
@@ -96,23 +175,40 @@ public final class ProbabilityTrackingController {
      * Returns missing-output snapshots for attempts that timed out on this tick only.
      * Timed-out attempts remain in the ledger so late outputs can still settle them.
      */
-    public List<List<GenericStack>> tick(long elapsedGameTicks) {
+    public List<List<GenericStack>> tick(long elapsedGameTicks, long gameTick) {
         var expired = new ArrayList<List<GenericStack>>();
-        if (elapsedGameTicks <= 0) {
-            return expired;
-        }
         for (var attempt : probabilityAttempts) {
-            if (attempt.tick(elapsedGameTicks)) {
+            // When the machine tracking is invalid, rolling back to timeout mechanism
+            if (attempt.machineMonitor != null && attempt.machineMonitor.isInvalid()) {
+                attempt.machineMonitor = null;
+                attempt.retryReason = RetryReason.NONE;
+                attempt.elapsedTicks = 0;
+                continue;
+            }
+
+            if (attempt.retryReason != RetryReason.NONE) {
+                continue;
+            }
+            if (attempt.machineMonitor != null) {
+                if (attempt.machineMonitor.tick(gameTick)) {
+                    attempt.retryReason = RetryReason.MACHINE_FINISHED;
+                    expired.add(attempt.snapshot());
+                }
+                continue;
+            }
+            attempt.elapsedTicks += Math.min(elapsedGameTicks, attempt.maxWaitingTicks - attempt.elapsedTicks);
+            if (attempt.elapsedTicks >= attempt.maxWaitingTicks) {
+                attempt.retryReason = RetryReason.TIMEOUT;
                 expired.add(attempt.snapshot());
             }
         }
         return expired;
     }
 
-    public List<GenericStack> getTimedOutOutputs() {
+    public List<GenericStack> getRetryOutputs() {
         var missing = new KeyCounter();
         for (var attempt : probabilityAttempts) {
-            if (attempt.timeout) {
+            if (attempt.canRetry()) {
                 missing.addAll(attempt.remaining.list);
             }
         }
@@ -125,10 +221,10 @@ public final class ProbabilityTrackingController {
         return outputs;
     }
 
-    public long getTimedOutAmount(AEKey key) {
+    public long getRetryAmount(AEKey key) {
         long amount = 0;
         for (var attempt : probabilityAttempts) {
-            if (attempt.timeout) {
+            if (attempt.canRetry()) {
                 amount += attempt.remaining.list.get(key);
             }
         }
@@ -136,14 +232,14 @@ public final class ProbabilityTrackingController {
     }
 
     /**
-     * When a supplement crafting plan is started to craft timeout outputs,
+     * When a supplement crafting plan is started to craft retry outputs,
      * remove the tracking for it.
      */
     public void receiveSupplementPlan(AEKey key, long amount) {
         var iterator = probabilityAttempts.iterator();
         while (iterator.hasNext() && amount > 0) {
             var attempt = iterator.next();
-            if (!attempt.timeout) {
+            if (!attempt.canRetry()) {
                 continue;
             }
             amount -= attempt.remaining.extract(key, amount, Actionable.MODULATE);
@@ -153,11 +249,11 @@ public final class ProbabilityTrackingController {
         }
     }
 
-    public CompoundTag save() {
+    public CompoundTag save(long gameTick) {
         var tag = new CompoundTag();
         var entries = new ListTag();
         for (var attempt : probabilityAttempts) {
-            entries.add(attempt.save());
+            entries.add(attempt.save(gameTick));
         }
         tag.put("attempts", entries);
         return tag;
@@ -167,15 +263,20 @@ public final class ProbabilityTrackingController {
         release();
         for (var value : tag.getList("attempts", Tag.TAG_COMPOUND)) {
             var entry = (CompoundTag) value;
-            long maxWaitingTicks = entry.getLong("maxWaitingTicks");
-            if (maxWaitingTicks <= 0) {
+            UUID batchId = entry.getUUID("batchId");
+            AEKey pattern = AEKey.fromTagGeneric(entry.getCompound("pattern"));
+            var attempt = new ProbabilityAttempt(batchId, pattern);
+            attempt.maxWaitingTicks = entry.getLong("maxWaitingTicks");
+            if (entry.contains("machineMonitor", Tag.TAG_COMPOUND)) {
+                attempt.machineMonitor = MachineExecutionMonitor.load(entry.getCompound("machineMonitor"));
+                // Runtime machine identities and execution events do not survive a reload.
+                // Re-enter timeout instead of leaving a suspended monitor waiting forever.
+                attempt.machineMonitor.invalidate();
+            } else if (attempt.maxWaitingTicks <= 0) {
                 continue;
             }
-            var pattern = entry.contains("pattern", Tag.TAG_COMPOUND)
-                    ? AEKey.fromTagGeneric(entry.getCompound("pattern")) : null;
-            var attempt = new ProbabilityAttempt(pattern, maxWaitingTicks);
-            attempt.elapsedTicks = Math.max(0, Math.min(maxWaitingTicks, entry.getLong("elapsedTicks")));
-            attempt.timeout = entry.getBoolean("timeout");
+            attempt.elapsedTicks = Math.max(0, Math.min(attempt.maxWaitingTicks, entry.getLong("elapsedTicks")));
+            attempt.retryReason = RetryReason.valueOf(entry.getString("retryReason"));
             attempt.remaining.readFromNBT(entry.getList("remaining", Tag.TAG_COMPOUND));
             if (!attempt.remaining.list.isEmpty()) {
                 probabilityAttempts.add(attempt);
@@ -191,30 +292,28 @@ public final class ProbabilityTrackingController {
      * For each probability crafting, record an attempt
      */
     private static final class ProbabilityAttempt {
+        // A pattern might deliver to different machines. Identify one attributed machine batch.
+        private final UUID batchId;
+        private final AEKey pattern;
         private final ListCraftingInventory remaining = new ListCraftingInventory(key -> {
         });
-        private final AEKey pattern;
-        private long maxWaitingTicks;
-        private long elapsedTicks;
-        private boolean timeout;
+        private long maxWaitingTicks = 0;
+        private long elapsedTicks = 0;
+        private MachineExecutionMonitor machineMonitor;
+        private RetryReason retryReason = RetryReason.NONE;
 
-        private ProbabilityAttempt(AEKey pattern, long maxWaitingTicks) {
+        private ProbabilityAttempt(UUID batchId, AEKey pattern) {
+            this.batchId = batchId;
             this.pattern = pattern;
-            this.maxWaitingTicks = maxWaitingTicks;
         }
 
-        /**
-         * Returns true only on the transition to timeout.
-         */
-        private boolean tick(long elapsedGameTicks) {
-            if (timeout) {
-                return false;
+        private void registerOutputs(GenericStack[] outputs, long operations) {
+            for (var output : outputs) {
+                long amount = output.amount() * operations;
+                if (amount > 0) {
+                    remaining.insert(output.what(), amount, Actionable.MODULATE);
+                }
             }
-            if (elapsedTicks < maxWaitingTicks) {
-                elapsedTicks += Math.min(elapsedGameTicks, maxWaitingTicks - elapsedTicks);
-            }
-            timeout = elapsedTicks >= maxWaitingTicks;
-            return timeout;
         }
 
         private List<GenericStack> snapshot() {
@@ -227,16 +326,37 @@ public final class ProbabilityTrackingController {
             return List.copyOf(outputs);
         }
 
-        private CompoundTag save() {
+        /**
+         * Determine this attempt could retry or not.
+         * If it's the machine tracking mechanism, the machine must be valid and working.
+         */
+        private boolean canRetry() {
+            if (retryReason == RetryReason.NONE) {
+                return false;
+            }
+            return machineMonitor == null || (!machineMonitor.isInvalid()) && (!machineMonitor.isSuspended());
+        }
+
+        private CompoundTag save(long gameTick) {
             var tag = new CompoundTag();
+            tag.putUUID("batchId", batchId);
             if (pattern != null) {
                 tag.put("pattern", pattern.toTagGeneric());
             }
             tag.putLong("maxWaitingTicks", maxWaitingTicks);
             tag.putLong("elapsedTicks", elapsedTicks);
-            tag.putBoolean("timeout", timeout);
+            tag.putString("retryReason", retryReason.name());
             tag.put("remaining", remaining.writeToNBT());
+            if (machineMonitor != null) {
+                tag.put("machineMonitor", machineMonitor.save(gameTick));
+            }
             return tag;
         }
+    }
+
+    private enum RetryReason {
+        NONE,
+        TIMEOUT,
+        MACHINE_FINISHED
     }
 }
