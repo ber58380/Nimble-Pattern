@@ -128,12 +128,15 @@ public class PatternTagTermMenu extends AEBaseMenu {
         // upgrade panel
         this.conditionItemInv = tagLogic.getConditionItemInv();
         this.conditionItemSlot = new FakeSlot(conditionItemInv, 0);
+        this.conditionItemSlot.setHideAmount(true);
         this.addSlot(conditionItemSlot, UPGRADE_CONDITION);
         // loop panel
         this.loopEndpointInv = tagLogic.getLoopEndpointInv();
         this.loopStorageCellInv = tagLogic.getLoopStorageCellInv();
         this.loopInputSlot = new FakeSlot(loopEndpointInv, 0);
+        this.loopInputSlot.setHideAmount(true);
         this.loopOutputSlot = new FakeSlot(loopEndpointInv, 1);
+        this.loopOutputSlot.setHideAmount(true);
         this.loopStorageCellSlot = new LoopStorageCellSlot(loopStorageCellInv, 0);
         this.addSlot(loopInputSlot, LOOP_INPUT);
         this.addSlot(loopOutputSlot, LOOP_OUTPUT);
@@ -141,6 +144,7 @@ public class PatternTagTermMenu extends AEBaseMenu {
         // tool panel
         this.toolInputInv = tagLogic.getToolInputInv();
         this.toolInputSlot = new FakeSlot(toolInputInv, 0);
+        this.toolInputSlot.setHideAmount(true);
         this.addSlot(toolInputSlot, TOOL_INPUT);
 
         if (bindInventory) {
