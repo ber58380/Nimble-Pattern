@@ -32,6 +32,16 @@ public class PatternTagLogic implements InternalInventoryHost {
         this.host = host;
     }
 
+    public PatternLayout getLayout() {
+        return host.getConfigManager().getSetting(PatternLayout.SETTING);
+    }
+
+    public void setLayout(PatternLayout layout) {
+        if (layout != null && layout != getLayout()) {
+            host.getConfigManager().putSetting(PatternLayout.SETTING, layout);
+        }
+    }
+
     public AppEngInternalInventory getInputPatternInv() {
         return inputPatternInv;
     }

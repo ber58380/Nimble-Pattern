@@ -38,8 +38,7 @@ public class PatternTagTerminalPart extends AbstractDisplayPart implements IConf
 
     public PatternTagTerminalPart(IPartItem<?> partItem) {
         super(partItem, true);
-        // 未来或许需要用configManager配置终端的设置，暂不启用
-//        this.configManager.registerSetting(PatternUpgradeTerminalSettings.DISPLAY_MODE, DisplayMode.FLAT);
+        configManager.registerSetting(PatternLayout.SETTING, PatternLayout.GRID);
     }
 
     @Override

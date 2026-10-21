@@ -1,17 +1,19 @@
 package com.ber.nimblePattern.client.gui;
 
+import appeng.api.client.AEKeyRendering;
 import appeng.api.config.Settings;
+import appeng.api.stacks.AEKey;
 import appeng.client.Point;
 import appeng.client.gui.AEBaseScreen;
 import appeng.client.gui.AESubScreen;
+import appeng.client.gui.Icon;
 import appeng.client.gui.style.Blitter;
+import appeng.client.gui.style.PaletteColor;
 import appeng.client.gui.style.ScreenStyle;
 import appeng.client.gui.style.TerminalStyle;
-import appeng.client.gui.widgets.AETextField;
-import appeng.client.gui.widgets.Scrollbar;
-import appeng.client.gui.widgets.SettingToggleButton;
-import appeng.client.gui.widgets.TabButton;
+import appeng.client.gui.widgets.*;
 import appeng.core.AEConfig;
+import appeng.core.definitions.AEBlocks;
 import appeng.core.localization.GuiText;
 import appeng.core.sync.network.NetworkHandler;
 import appeng.core.sync.packets.InventoryActionPacket;
@@ -21,11 +23,14 @@ import com.ber.nimblePattern.client.gui.search.PatternSearch;
 import com.ber.nimblePattern.client.gui.widgets.DialogBox;
 import com.ber.nimblePattern.client.gui.widgets.PatternUpgradeSlot;
 import com.ber.nimblePattern.menu.PatternTagTermMenu;
+import com.ber.nimblePattern.parts.PatternLayout;
 import com.ber.nimblePattern.parts.TagMode;
+import com.ber.nimblePattern.pattern.NimblePatternTag;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.locale.Language;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.ClickType;
@@ -52,7 +57,12 @@ public class PatternTagTermScreen<C extends PatternTagTermMenu> extends AEBaseSc
     private final Map<TagMode, TabButton> modeTabButtons = new EnumMap<>(TagMode.class);
     private final Long2ObjectOpenHashMap<PatternContainerRecord> byId = new Long2ObjectOpenHashMap<>();
     private int rows = 0;
-    private List<PatternRecord> patterns = new ArrayList<>();
+    private final List<PatternRecord> patterns = new ArrayList<>();
+    private final List<DisplayRow> displayRows = new ArrayList<>();
+    private PatternLayout displayMode;
+    private final IconButton displayModeButton;
+    private static final int GROUP_HEADER_BACKGROUND = 0xFF9A9FB4;
+    private static final int GROUP_HEADER_TOP_SHADOW = 0xFF696D88;
 
     // ClearPacket starts a full synchronization batch. Full PatternPackets only
     // populate byId; PatternSyncCompletePacket rebuilds the expensive global view once.
@@ -64,7 +74,15 @@ public class PatternTagTermScreen<C extends PatternTagTermMenu> extends AEBaseSc
     public PatternTagTermScreen(C menu, Inventory playerInventory, Component title, ScreenStyle style) {
         super(menu, playerInventory, title, style);
         this.style = style.getTerminalStyle();
+        this.displayMode = menu.getLayout();
         addToLeftToolbar(new SettingToggleButton<>(Settings.TERMINAL_STYLE, AEConfig.instance().getTerminalStyle(), this::toggleTerminalStyle));
+        this.displayModeButton = addToLeftToolbar(new IconButton(button -> toggleDisplayMode()) {
+            @Override
+            protected Icon getIcon() {
+                return displayMode == PatternLayout.GRID ? Icon.VIEW_MODE_ALL : Icon.SORT_BY_NAME;
+            }
+        });
+        updateDisplayModeButton();
         this.scrollbar = widgets.addScrollBar("scrollbar");
         this.searchField = widgets.addTextField("search");
         this.searchField.setPlaceholder(GuiText.SearchPlaceholder.text());
@@ -129,6 +147,7 @@ public class PatternTagTermScreen<C extends PatternTagTermMenu> extends AEBaseSc
         fullUpdateInProgress = true;
         byId.clear();
         patterns.clear();
+        displayRows.clear();
         patternViewDirty = true;
         if (Minecraft.getInstance().screen == this) {
             menu.slots.removeIf(slot -> slot instanceof PatternUpgradeSlot);
@@ -148,6 +167,7 @@ public class PatternTagTermScreen<C extends PatternTagTermMenu> extends AEBaseSc
         }
         patternViewDirty = false;
         updatePatterns();
+        updateDisplayRows();
         updateScrollbar();
         updateSlots();
     }
@@ -194,36 +214,103 @@ public class PatternTagTermScreen<C extends PatternTagTermMenu> extends AEBaseSc
                 patterns.add(new PatternRecord(record.getServerId(), i, stack));
             }
         }
-        patterns.sort(Comparator.comparing(PatternRecord::sortKey));
+        patterns.sort(Comparator.comparing(PatternRecord::sortKey)
+                .thenComparingLong(PatternRecord::serverId)
+                .thenComparingInt(PatternRecord::machineSlot));
+    }
+
+    private void toggleDisplayMode() {
+        menu.setLayout(menu.getLayout() == PatternLayout.GRID
+                ? PatternLayout.GROUPED : PatternLayout.GRID);
+    }
+
+    private void updateDisplayModeButton() {
+        displayModeButton.setMessage(Component.translatable(
+                displayMode == PatternLayout.GRID
+                        ? "gui.nimble_pattern.pattern_tag_terminal.layout_grid"
+                        : "gui.nimble_pattern.pattern_tag_terminal.layout_condition"));
+    }
+
+    private void updateDisplayRows() {
+        displayRows.clear();
+        if (displayMode == PatternLayout.GRID) {
+            appendPatternRows(patterns);
+            return;
+        }
+
+        // LinkedHashMap preserves deterministic tie ordering from the sorted patterns.
+        var groups = new LinkedHashMap<AEKey, List<PatternRecord>>();
+        var unassigned = new ArrayList<PatternRecord>();
+        for (var pattern : patterns) {
+            var condition = NimblePatternTag.getCondition(pattern.stack());
+            if (condition == null) {
+                unassigned.add(pattern);
+            } else {
+                groups.computeIfAbsent(condition, key -> new ArrayList<>()).add(pattern);
+            }
+        }
+
+        var conditions = new ArrayList<>(groups.keySet());
+        conditions.sort(Comparator
+                .comparing((AEKey key) -> key.getDisplayName().getString().toLowerCase(Locale.ROOT))
+                .thenComparing(key -> key.getType().getId().toString())
+                .thenComparing(key -> key.getId().toString()));
+        for (var condition : conditions) {
+            var group = groups.get(condition);
+            displayRows.add(new GroupHeaderRow(condition));
+            appendPatternRows(group);
+        }
+        if (!unassigned.isEmpty()) {
+            displayRows.add(new GroupHeaderRow(null));
+            appendPatternRows(unassigned);
+        }
+    }
+
+    private void appendPatternRows(List<PatternRecord> source) {
+        for (int offset = 0; offset < source.size(); offset += COLUMNS) {
+            displayRows.add(new PatternRow(List.copyOf(
+                    source.subList(offset, Math.min(offset + COLUMNS, source.size())))));
+        }
+    }
+
+    @Nullable
+    private DisplayRow getVisibleRow(int visibleRow) {
+        int index = scrollbar.getCurrentScroll() + visibleRow;
+        return index >= 0 && index < displayRows.size() ? displayRows.get(index) : null;
     }
 
     private void updateScrollbar() {
         scrollbar.setHeight(this.rows * style.getRow().getSrcHeight() - 2);
-        int totalRows = (patterns.size() + COLUMNS - 1) / COLUMNS;
-        scrollbar.setRange(0, totalRows - this.rows, Math.max(1, this.rows / 6));
+        scrollbar.setRange(0, Math.max(0, displayRows.size() - this.rows), Math.max(1, this.rows / 6));
     }
 
     private void updateSlots() {
         menu.slots.removeIf(slot -> slot instanceof PatternUpgradeSlot);
-        int first = scrollbar.getCurrentScroll();
+        if (fullUpdateInProgress) {
+            return;
+        }
         for (int r = 0; r < rows; r++) {
-            int row = first + r;
+            var row = getVisibleRow(r);
+            if (row instanceof GroupHeaderRow) {
+                continue;
+            }
+            List<PatternRecord> rowPatterns = row instanceof PatternRow patternRow ? patternRow.patterns() : List.of();
             for (int col = 0; col < COLUMNS; col++) {
-                int idx = row * COLUMNS + col;
                 var pos = style.getSlotPos(r, col);
-                // add dummy blank slots to show the full row
-                if (idx >= patterns.size()) {
+                if (col >= rowPatterns.size()) {
                     menu.slots.add(new PatternUpgradeSlot(VIRTUAL_INV, VIRTUAL_ID, col, pos.getX(), pos.getY()));
                     continue;
                 }
-                var pattern = patterns.get(idx);
+                var pattern = rowPatterns.get(col);
                 var record = byId.get(pattern.serverId());
-                menu.slots.add(new PatternUpgradeSlot(
-                        record.getInventory(),
-                        pattern.serverId(),
-                        pattern.machineSlot(),
-                        pos.getX(),
-                        pos.getY()));
+                if (record != null) {
+                    menu.slots.add(new PatternUpgradeSlot(
+                            record.getInventory(),
+                            pattern.serverId(),
+                            pattern.machineSlot(),
+                            pos.getX(),
+                            pos.getY()));
+                }
             }
         }
     }
@@ -243,6 +330,17 @@ public class PatternTagTermScreen<C extends PatternTagTermMenu> extends AEBaseSc
     @Override
     protected void updateBeforeRender() {
         super.updateBeforeRender();
+        if (displayMode != menu.getLayout()) {
+            displayMode = menu.getLayout();
+            updateDisplayModeButton();
+            scrollbar.setCurrentScroll(0);
+            patternViewDirty = true;
+        }
+        if (patternViewDirty && !fullUpdateInProgress) {
+            rebuildPatternView();
+        }
+        // Build slots before vanilla rendering and hover detection.
+        updateSlots();
 
         repositionSlots(INPUT_PATTERN);
         for (int i = 0; i < menu.getInputPatternSlots().length; i++) {
@@ -320,8 +418,26 @@ public class PatternTagTermScreen<C extends PatternTagTermMenu> extends AEBaseSc
 
     @Override
     public void drawFG(GuiGraphics guiGraphics, int offsetX, int offsetY, int mouseX, int mouseY) {
-        updateSlots();
         super.drawFG(guiGraphics, offsetX, offsetY, mouseX, mouseY);
+        int textColor = getStyle().getColor(PaletteColor.DEFAULT_TEXT_COLOR).toARGB();
+        for (int r = 0; r < rows; r++) {
+            if (getVisibleRow(r) instanceof GroupHeaderRow header) {
+                int y = style.getHeader().getSrcHeight() + r * style.getRow().getSrcHeight() + 6;
+                var pose = guiGraphics.pose();
+                pose.pushPose();
+                pose.translate(10, y, 0);
+                pose.scale(0.5f, 0.5f, 1.0f);
+                if (header.condition() != null) {
+                    AEKeyRendering.drawInGui(Minecraft.getInstance(), guiGraphics, 0, 0, header.condition());
+                } else {
+                    guiGraphics.renderItem(new ItemStack(AEBlocks.PATTERN_PROVIDER.asItem()), 0, 0);
+                }
+                pose.popPose();
+                var text = font.substrByWidth(header.title(), 145);
+                guiGraphics.drawString(font, Language.getInstance().getVisualOrder(text),
+                        20, y, textColor, false);
+            }
+        }
     }
 
     @Override
@@ -330,13 +446,52 @@ public class PatternTagTermScreen<C extends PatternTagTermMenu> extends AEBaseSc
         style.getHeader().dest(offsetX, y).blit(guiGraphics);
         y += style.getHeader().getSrcHeight();
         int rowsToDraw = Math.max(2, this.rows);
-        for (int x = 0; x < rowsToDraw; x++) {
+        for (int r = 0; r < rowsToDraw; r++) {
             Blitter row = style.getRow();
-            if (x == 0) row = style.getFirstRow();
-            else if (x + 1 == rowsToDraw) row = style.getLastRow();
+            if (r == 0) row = style.getFirstRow();
+            else if (r + 1 == rowsToDraw) row = style.getLastRow();
             row.dest(offsetX, y).blit(guiGraphics);
+            if (getVisibleRow(r) instanceof GroupHeaderRow) {
+                // Cover only the inner slot area, preserving the original frame and scrollbar.
+                int left = offsetX + style.getSlotPos(r, 0).getX();
+                int right = offsetX + style.getSlotPos(r, COLUMNS - 1).getX() + 16;
+                int top = y + (r == 0 ? 1 : 0);
+                int bottom = y + style.getRow().getSrcHeight() - (r + 1 == rowsToDraw ? 1 : 0);
+                guiGraphics.fill(left, top, right, bottom, GROUP_HEADER_BACKGROUND);
+                if (r == 0) {
+                    guiGraphics.fill(left, top, right, top + 2, GROUP_HEADER_TOP_SHADOW);
+                }
+            }
             y += style.getRow().getSrcHeight();
         }
         style.getBottom().dest(offsetX, y).blit(guiGraphics);
+    }
+
+    @Override
+    protected void renderTooltip(GuiGraphics guiGraphics, int mouseX, int mouseY) {
+        int x = mouseX - leftPos;
+        int y = mouseY - topPos - style.getHeader().getSrcHeight();
+        int slotLeft = style.getSlotPos(0, 0).getX() - 1;
+        int rowHeight = style.getRow().getSrcHeight();
+        if (x >= slotLeft && x < slotLeft + COLUMNS * 18 && y >= 0 && y < rows * rowHeight
+                && getVisibleRow(y / rowHeight) instanceof GroupHeaderRow header) {
+            guiGraphics.renderTooltip(font, header.title(), mouseX, mouseY);
+            return;
+        }
+        super.renderTooltip(guiGraphics, mouseX, mouseY);
+    }
+
+    private sealed interface DisplayRow permits GroupHeaderRow, PatternRow {
+    }
+
+    private record GroupHeaderRow(@Nullable AEKey condition) implements DisplayRow {
+        Component title() {
+            return condition == null
+                    ? Component.translatable("gui.nimble_pattern.pattern_tag_terminal.no_condition")
+                    : condition.getDisplayName();
+        }
+    }
+
+    private record PatternRow(List<PatternRecord> patterns) implements DisplayRow {
     }
 }

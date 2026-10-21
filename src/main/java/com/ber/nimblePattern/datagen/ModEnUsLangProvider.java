@@ -16,6 +16,9 @@ public class ModEnUsLangProvider extends LanguageProvider {
         add("item.nimble_pattern.pattern_tag_terminal", "Pattern Tag Terminal");
         add("gui.nimble_pattern.pattern_tag_terminal.search_tooltip_condition", "Use % to search by conditions (%UHV)");
         add("gui.nimble_pattern.pattern_tag_terminal.search_tooltip_status", "Use ~ to search by status (~UPGRADE)");
+        add("gui.nimble_pattern.pattern_tag_terminal.layout_grid", "View: Grid");
+        add("gui.nimble_pattern.pattern_tag_terminal.layout_condition", "View: Group");
+        add("gui.nimble_pattern.pattern_tag_terminal.no_condition", "No condition");
         add("gui.nimble_pattern.pattern_tag_terminal.clear", "Clear");
         add("gui.nimble_pattern.pattern_tag_terminal.apply", "Apply");
         add("gui.nimble_pattern.pattern_tag_terminal.tab.upgrade", "Upgrade Patterns");

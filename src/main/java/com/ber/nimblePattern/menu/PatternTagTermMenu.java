@@ -32,6 +32,7 @@ import com.ber.nimblePattern.network.ClearPacket;
 import com.ber.nimblePattern.network.NimblePatternNetwork;
 import com.ber.nimblePattern.network.PatternPacket;
 import com.ber.nimblePattern.network.PatternSyncCompletePacket;
+import com.ber.nimblePattern.parts.PatternLayout;
 import com.ber.nimblePattern.parts.PatternTagLogic;
 import com.ber.nimblePattern.parts.TagMode;
 import com.ber.nimblePattern.pattern.NimblePatternTag;
@@ -93,15 +94,18 @@ public class PatternTagTermMenu extends AEBaseMenu {
 
     @GuiSync(97)
     public TagMode mode;
+    @GuiSync(98)
+    public PatternLayout layout;
+
     private long lastNetworkCheck = Long.MIN_VALUE;
 
-    @GuiSync(98)
-    public Component dialogTitle = Component.empty();
     @GuiSync(99)
-    public Component dialogMessage = Component.empty();
+    public Component dialogTitle = Component.empty();
     @GuiSync(100)
-    public LoopDiagramData dialogLoopDiagram = LoopDiagramData.EMPTY;
+    public Component dialogMessage = Component.empty();
     @GuiSync(101)
+    public LoopDiagramData dialogLoopDiagram = LoopDiagramData.EMPTY;
+    @GuiSync(102)
     public long dialogRevision = 0;
     private static final Component LOOP_ERROR_TITLE = Component.translatable("gui.nimble_pattern.tag_loop_pattern_failure").withStyle(ChatFormatting.RED);
     private static final Component LOOP_SUCCESS_TITLE = Component.translatable("gui.nimble_pattern.tag_loop_pattern_success").withStyle(ChatFormatting.DARK_GREEN);
@@ -116,6 +120,7 @@ public class PatternTagTermMenu extends AEBaseMenu {
         this.host = host;
         this.tagLogic = host.getLogic();
         this.mode = tagLogic.getMode();
+        this.layout = tagLogic.getLayout();
         // input pattern slots (shared)
         this.inputPatternInv = tagLogic.getInputPatternInv();
         for (int i = 0; i < INPUT_PATTERN_SLOTS; i++) {
@@ -150,6 +155,7 @@ public class PatternTagTermMenu extends AEBaseMenu {
             this.createPlayerInventorySlots(ip);
         }
         registerClientAction("setMode", TagMode.class, this::setMode);
+        registerClientAction("setLayout", PatternLayout.class, this::setLayout);
         registerClientAction("applyCondition", this::applyUpgradeCondition);
         registerClientAction("clearCondition", this::clearUpgradeCondition);
         registerClientAction("applyLoop", this::applyLoop);
@@ -174,6 +180,22 @@ public class PatternTagTermMenu extends AEBaseMenu {
 
     public TagMode getMode() {
         return this.mode;
+    }
+
+    public PatternLayout getLayout() {
+        return layout;
+    }
+
+    public void setLayout(PatternLayout layout) {
+        if (layout == null) {
+            return;
+        }
+        if (isClientSide()) {
+            sendClientAction("setLayout", layout);
+            return;
+        }
+        tagLogic.setLayout(layout);
+        this.layout = tagLogic.getLayout();
     }
 
     public void setMode(TagMode mode) {
@@ -276,6 +298,7 @@ public class PatternTagTermMenu extends AEBaseMenu {
         if (this.mode != tagLogic.getMode()) {
             this.mode = tagLogic.getMode();
         }
+        this.layout = tagLogic.getLayout();
         super.broadcastChanges();
         long now = getPlayer().level().getGameTime();
         if (lastNetworkCheck != Long.MIN_VALUE && now - lastNetworkCheck < 5) {
