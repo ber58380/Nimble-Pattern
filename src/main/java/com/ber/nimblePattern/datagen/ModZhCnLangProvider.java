@@ -19,12 +19,34 @@ public class ModZhCnLangProvider extends LanguageProvider {
         add("gui.nimble_pattern.pattern_tag_terminal.layout_grid", "显示：网格布局");
         add("gui.nimble_pattern.pattern_tag_terminal.layout_condition", "显示：分组布局");
         add("gui.nimble_pattern.pattern_tag_terminal.no_condition", "未设置条件");
+        add("gui.nimble_pattern.pattern_tag_terminal.upgrade", "更新");
         add("gui.nimble_pattern.pattern_tag_terminal.clear", "清除");
         add("gui.nimble_pattern.pattern_tag_terminal.apply", "应用");
         add("gui.nimble_pattern.pattern_tag_terminal.tab.upgrade", "更新样板");
         add("gui.nimble_pattern.pattern_tag_terminal.tab.loop", "循环样板");
         add("gui.nimble_pattern.pattern_tag_terminal.tab.tool", "工具样板");
         add("gui.nimble_pattern.pattern_tag_terminal.tab.probability", "概率样板");
+
+        // 推荐更新配方的对话框信息
+        add("gui.nimble_pattern.recommend_upgrade_recipes.title", "样板更新建议");
+        add("gui.nimble_pattern.recommend_upgrade_recipes.no_recommendations", "没有符合条件的更新配方");
+        add("gui.nimble_pattern.recommend_upgrade_recipes.stale", "原样板或配方已发生变化，已跳过本次更新。");
+        add("gui.nimble_pattern.recommend_upgrade_recipes.yield", "%s：%s → %s");
+        add("gui.nimble_pattern.recommend_upgrade_recipes.jei_unavailable", "无法加载 JEI 配方预览。可以跳过此建议或关闭窗口。");
+        add("gui.nimble_pattern.recommend_upgrade_recipes.encoded_inputs", "新样板实际写入的输入：");
+        add("gui.nimble_pattern.recommend_upgrade_recipes.encoded_inputs_hint", "编码输入（悬停查看详情）");
+        add("gui.nimble_pattern.recommend_upgrade_recipes.native_note", "JEI 可能轮换展示替代材料。电路、模具、概率消耗及不消耗输入不会写入样板。");
+        add("gui.nimble_pattern.recommend_upgrade_recipes.confirm", "确认");
+        add("gui.nimble_pattern.recommend_upgrade_recipes.skip", "跳过");
+        add("gui.nimble_pattern.recommend_upgrade_recipes.progress", "样板更新建议（%s / %s）");
+        add("gui.nimble_pattern.recommend_upgrade_recipes.comparison", "产量：%s → %s    耗时：%s → %s tick");
+        add("gui.nimble_pattern.recommend_upgrade_recipes.inputs", "输入");
+        add("gui.nimble_pattern.recommend_upgrade_recipes.outputs", "输出");
+        add("gui.nimble_pattern.recommend_upgrade_recipes.preview_only", "金色边框材料仅供预览，不写入样板；请自行配置机器和预置材料。");
+        add("gui.nimble_pattern.recommend_upgrade_recipes.not_encoded", "仅供预览，不写入样板");
+        add("gui.nimble_pattern.recommend_upgrade_recipes.chance", "消耗概率：%s%%");
+        add("gui.nimble_pattern.recommend_upgrade_recipes.amount", "数量：%s");
+        add("gui.nimble_pattern.recommend_upgrade_recipes.scroll", "滚轮查看更多");
 
         add("tooltip.nimble_pattern.fake_pattern", "假样板");
         add("tooltip.nimble_pattern.condition", "更新条件：%s");

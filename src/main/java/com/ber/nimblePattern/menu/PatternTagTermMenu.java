@@ -7,6 +7,7 @@ import appeng.api.networking.IGridNode;
 import appeng.api.networking.security.IActionHost;
 import appeng.api.stacks.AEFluidKey;
 import appeng.api.stacks.AEItemKey;
+import appeng.api.stacks.AEKey;
 import appeng.api.stacks.GenericStack;
 import appeng.crafting.pattern.AECraftingPattern;
 import appeng.helpers.InventoryAction;
@@ -25,6 +26,7 @@ import appeng.parts.crafting.PatternProviderPart;
 import appeng.util.inv.AppEngInternalInventory;
 import com.ber.nimblePattern.client.gui.widgets.LoopDiagramData;
 import com.ber.nimblePattern.compat.extendedae.ExtendedAECompat;
+import com.ber.nimblePattern.compat.gtceu.GTRecipeUpgradeFinder;
 import com.ber.nimblePattern.helpers.IPatternTagMenuHost;
 import com.ber.nimblePattern.item.storage.LoopStorageCellItem;
 import com.ber.nimblePattern.menu.slot.LoopStorageCellSlot;
@@ -40,6 +42,8 @@ import com.ber.nimblePattern.pattern.PatternValidation;
 import com.ber.nimblePattern.pattern.loop.LoopPatternClearPlan;
 import com.ber.nimblePattern.pattern.loop.LoopPatternParser;
 import com.ber.nimblePattern.pattern.upgrade.PatternInventorySnapshots;
+import com.ber.nimblePattern.pattern.upgrade.RecipeUpgradeCandidate;
+import com.ber.nimblePattern.pattern.upgrade.UpgradePreview;
 import it.unimi.dsi.fastutil.ints.Int2ObjectArrayMap;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
@@ -47,6 +51,7 @@ import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.nbt.TagParser;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -56,6 +61,7 @@ import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraftforge.fml.ModList;
 import net.minecraftforge.network.PacketDistributor;
 import org.jetbrains.annotations.Nullable;
 
@@ -107,6 +113,12 @@ public class PatternTagTermMenu extends AEBaseMenu {
     public LoopDiagramData dialogLoopDiagram = LoopDiagramData.EMPTY;
     @GuiSync(102)
     public long dialogRevision = 0;
+    @GuiSync(103)
+    public UpgradePreview upgradePreview = UpgradePreview.EMPTY;
+    private final List<UpgradeEntry> upgradeTasksList = new ArrayList<>();
+    private int upgradeIndex;
+    private long upgradePreviewRevision = 0;
+
     private static final Component LOOP_ERROR_TITLE = Component.translatable("gui.nimble_pattern.tag_loop_pattern_failure").withStyle(ChatFormatting.RED);
     private static final Component LOOP_SUCCESS_TITLE = Component.translatable("gui.nimble_pattern.tag_loop_pattern_success").withStyle(ChatFormatting.DARK_GREEN);
     private static final Component TOOL_ERROR_TITLE = Component.translatable("gui.nimble_pattern.tag_tool_pattern_failure").withStyle(ChatFormatting.RED);
@@ -164,6 +176,10 @@ public class PatternTagTermMenu extends AEBaseMenu {
         registerClientAction("clearTool", this::clearTool);
         registerClientAction("applyProbability", String.class, this::applyProbability);
         registerClientAction("clearProbability", this::clearProbability);
+        registerClientAction("recommendUpgradeRecipe", String.class, this::recommendUpgradeRecipe);
+        registerClientAction("confirmRecipeUpgrade", Long.class, this::confirmRecipeUpgrade);
+        registerClientAction("skipRecipeUpgrade", Long.class, this::skipRecipeUpgrade);
+        registerClientAction("cancelRecipeUpgrade", Long.class, this::cancelRecipeUpgrade);
     }
 
     public RestrictedInputSlot[] getInputPatternSlots() {
@@ -588,6 +604,146 @@ public class PatternTagTermMenu extends AEBaseMenu {
         }
     }
 
+    public void recommendUpgradeRecipe(String conditionText) {
+        if (isClientSide()) {
+            sendClientAction("recommendUpgradeRecipe", conditionText);
+            return;
+        }
+        var grid = getGrid();
+        if (grid == null) {
+            return;
+        }
+        AEKey condition;
+        try {
+            condition = AEKey.fromTagGeneric(TagParser.parseTag(conditionText));
+        } catch (Exception e) {
+            return;
+        }
+        if (condition == null) {
+            return;
+        }
+        if (!stillValid(getPlayer())) {
+            return;
+        }
+
+        // TODO: 暂时只支持寻找GT内的更优配方
+        if (!ModList.get().isLoaded("gtceu")) {
+            showDialogBox(Component.translatable("gui.nimble_pattern.recommend_upgrade_recipes.title"),
+                    Component.translatable("gui.nimble_pattern.recommend_upgrade_recipes.no_recommendations"));
+            broadcastChanges();
+            return;
+        }
+        upgradeTasksList.clear();
+        upgradeIndex = 0;
+        upgradePreview = UpgradePreview.EMPTY;
+        var finder = new GTRecipeUpgradeFinder((ServerLevel) getPlayer().level(), grid.getStorageService().getCachedInventory());
+
+        // find all patterns with the targeted condition
+        var trackers = new ArrayList<>(byId.values());
+        trackers.sort(Comparator.comparingLong(t -> t.serverId));
+        Set<InternalInventory> seen = Collections.newSetFromMap(new IdentityHashMap<>());
+        for (var tracker : trackers) {
+            if (tracker.container.getGrid() != grid) {
+                continue;
+            }
+            if (!seen.add(tracker.server)) {
+                continue;
+            }
+            for (int i = 0; i < tracker.server.size(); i++) {
+                var original = tracker.server.getStackInSlot(i);
+                if (!condition.equals(NimblePatternTag.getCondition(original))) {
+                    continue;
+                }
+                var candidate = finder.recommend(original);
+                if (candidate != null) {
+                    upgradeTasksList.add(new UpgradeEntry(tracker, i, original.copy(), candidate));
+                }
+            }
+        }
+        if (upgradeTasksList.isEmpty()) {
+            showDialogBox(Component.translatable("gui.nimble_pattern.recommend_upgrade_recipes.title"),
+                    Component.translatable("gui.nimble_pattern.recommend_upgrade_recipes.no_recommendations"));
+        } else {
+            publishUpgradePreview();
+        }
+        broadcastChanges();
+    }
+
+    /**
+     * After clicking upgrade button and view previews before confirming, original patterns might be changed.
+     * This method is to check the original patterns still remain same as before.
+     */
+    private boolean isUpgradeEntryRemain(UpgradeEntry entry) {
+        var grid = getGrid();
+        var tracker = entry.tracker();
+        var recipes = getPlayer().level().getRecipeManager();
+        return grid != null && stillValid(getPlayer()) && tracker.container.getGrid() == grid
+                && tracker.container.getTerminalPatternInventory() == tracker.server
+                && entry.slot() < tracker.server.size()
+                && ItemStack.matches(entry.originalPattern(), tracker.server.getStackInSlot(entry.slot()))
+                && recipes.byKey(entry.candidate().originalRecipe().getId()).orElse(null) == entry.candidate().originalRecipe()
+                && recipes.byKey(entry.candidate().recipe().getId()).orElse(null) == entry.candidate().recipe();
+    }
+
+    private void publishUpgradePreview() {
+        while (upgradeIndex < upgradeTasksList.size() && !isUpgradeEntryRemain(upgradeTasksList.get(upgradeIndex))) {
+            upgradeIndex++;
+        }
+        if (upgradeIndex >= upgradeTasksList.size()) {
+            upgradeTasksList.clear();
+            upgradePreview = UpgradePreview.EMPTY;
+        } else {
+            upgradePreview = upgradeTasksList.get(upgradeIndex).candidate().preview()
+                    .forward(++upgradePreviewRevision, upgradeIndex + 1, upgradeTasksList.size());
+        }
+    }
+
+    public void confirmRecipeUpgrade(long revision) {
+        if (isClientSide()) {
+            sendClientAction("confirmRecipeUpgrade", revision);
+            return;
+        }
+        if (revision == 0 || revision != upgradePreview.revision() || upgradeIndex >= upgradeTasksList.size()) {
+            return;
+        }
+        var entry = upgradeTasksList.get(upgradeIndex);
+        if (isUpgradeEntryRemain(entry)) {
+            entry.tracker().server.setItemDirect(entry.slot(), entry.candidate().replacement().copy());
+        } else {
+            getPlayer().displayClientMessage(Component.translatable("gui.nimble_pattern.recommend_upgrade_recipes.stale"), false);
+        }
+        upgradeIndex++;
+        publishUpgradePreview();
+        lastNetworkCheck = Long.MIN_VALUE;
+        broadcastChanges();
+    }
+
+    public void skipRecipeUpgrade(long token) {
+        if (isClientSide()) {
+            sendClientAction("skipRecipeUpgrade", token);
+            return;
+        }
+        if (token == 0 || token != upgradePreview.revision() || upgradeIndex >= upgradeTasksList.size()) {
+            return;
+        }
+        upgradeIndex++;
+        publishUpgradePreview();
+        broadcastChanges();
+    }
+
+    public void cancelRecipeUpgrade(long revision) {
+        if (isClientSide()) {
+            sendClientAction("cancelRecipeUpgrade", revision);
+            return;
+        }
+        if (revision != upgradePreview.revision()) {
+            return;
+        }
+        upgradeTasksList.clear();
+        upgradePreview = UpgradePreview.EMPTY;
+        broadcastChanges();
+    }
+
     private void sendFullUpdate(@Nullable IGrid grid) {
         this.byId.clear();
         this.diList.clear();
@@ -852,5 +1008,10 @@ public class PatternTagTermMenu extends AEBaseMenu {
         }
     }
 
-
+    /**
+     * The upgrade task for a pattern.
+     */
+    private record UpgradeEntry(ContainerTracker tracker, int slot, ItemStack originalPattern,
+                                RecipeUpgradeCandidate candidate) {
+    }
 }

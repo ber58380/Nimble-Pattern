@@ -19,12 +19,34 @@ public class ModEnUsLangProvider extends LanguageProvider {
         add("gui.nimble_pattern.pattern_tag_terminal.layout_grid", "View: Grid");
         add("gui.nimble_pattern.pattern_tag_terminal.layout_condition", "View: Group");
         add("gui.nimble_pattern.pattern_tag_terminal.no_condition", "No condition");
+        add("gui.nimble_pattern.pattern_tag_terminal.upgrade", "Upgrade");
         add("gui.nimble_pattern.pattern_tag_terminal.clear", "Clear");
         add("gui.nimble_pattern.pattern_tag_terminal.apply", "Apply");
         add("gui.nimble_pattern.pattern_tag_terminal.tab.upgrade", "Upgrade Patterns");
         add("gui.nimble_pattern.pattern_tag_terminal.tab.loop", "Loop Patterns");
         add("gui.nimble_pattern.pattern_tag_terminal.tab.tool", "Tool Patterns");
         add("gui.nimble_pattern.pattern_tag_terminal.tab.probability", "Probability Patterns");
+
+        // Information of recommending upgradeable recipes
+        add("gui.nimble_pattern.recommend_upgrade_recipes.title", "Pattern upgrade suggestions");
+        add("gui.nimble_pattern.recommend_upgrade_recipes.no_recommendations", "No suitable upgrade recipes found");
+        add("gui.nimble_pattern.recommend_upgrade_recipes.stale", "The original pattern or recipe changed. This upgrade was skipped.");
+        add("gui.nimble_pattern.recommend_upgrade_recipes.yield", "%s: %s → %s");
+        add("gui.nimble_pattern.recommend_upgrade_recipes.jei_unavailable", "JEI recipe preview is unavailable. You can skip this suggestion or close the dialog.");
+        add("gui.nimble_pattern.recommend_upgrade_recipes.encoded_inputs", "Inputs written to the new pattern:");
+        add("gui.nimble_pattern.recommend_upgrade_recipes.encoded_inputs_hint", "Encoded inputs (hover for details)");
+        add("gui.nimble_pattern.recommend_upgrade_recipes.native_note", "JEI may cycle alternatives. Circuits, molds and chance/non-consumable inputs are not encoded.");
+        add("gui.nimble_pattern.recommend_upgrade_recipes.confirm", "Confirm");
+        add("gui.nimble_pattern.recommend_upgrade_recipes.skip", "Skip");
+        add("gui.nimble_pattern.recommend_upgrade_recipes.progress", "Pattern upgrade (%s / %s)");
+        add("gui.nimble_pattern.recommend_upgrade_recipes.comparison", "Yield: %s → %s    Time: %s → %s ticks");
+        add("gui.nimble_pattern.recommend_upgrade_recipes.inputs", "Inputs");
+        add("gui.nimble_pattern.recommend_upgrade_recipes.outputs", "Outputs");
+        add("gui.nimble_pattern.recommend_upgrade_recipes.preview_only", "Gold-bordered inputs are preview-only and are not encoded. Configure the machine and supply these materials yourself.");
+        add("gui.nimble_pattern.recommend_upgrade_recipes.not_encoded", "Preview only; not encoded");
+        add("gui.nimble_pattern.recommend_upgrade_recipes.chance", "Consumption chance: %s%%");
+        add("gui.nimble_pattern.recommend_upgrade_recipes.amount", "Amount: %s");
+        add("gui.nimble_pattern.recommend_upgrade_recipes.scroll", "Scroll for more");
 
         add("tooltip.nimble_pattern.fake_pattern", "Fake Pattern");
         add("tooltip.nimble_pattern.condition", "Upgrade condition: %s");

@@ -26,7 +26,8 @@
     "ae2.PatternProviderPartMixin"
   ],
   "client": [
-    "ae2.PatternProviderScreenMixin"
+    "ae2.PatternProviderScreenMixin",
+    "ae2.EncodePatternTransferHandlerMixin"
   ],
   "injectors": {
     "defaultRequire": 1

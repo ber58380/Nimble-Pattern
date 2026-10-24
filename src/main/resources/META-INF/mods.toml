@@ -70,6 +70,13 @@ ordering = "AFTER"
 side = "BOTH"
 
 [[dependencies."${mod_id}"]]
+modId = "jei"
+mandatory = true
+versionRange = "[15.20.0.129,16)"
+ordering = "AFTER"
+side = "CLIENT"
+
+[[dependencies."${mod_id}"]]
 modId = "jecharacters"
 mandatory = false
 versionRange = "[4.6.3,)"

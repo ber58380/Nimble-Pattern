@@ -22,5 +22,6 @@ public class NimblePatternNetwork {
         CHANNEL.registerMessage(3, PatternSyncCompletePacket.class, PatternSyncCompletePacket::encode, PatternSyncCompletePacket::decode, PatternSyncCompletePacket::handle);
         CHANNEL.registerMessage(4, LoopSeedLostNotificationPacket.class, LoopSeedLostNotificationPacket::encode, LoopSeedLostNotificationPacket::decode, LoopSeedLostNotificationPacket::handle);
         CHANNEL.registerMessage(5, ProbabilityBlockedNotificationPacket.class, ProbabilityBlockedNotificationPacket::encode, ProbabilityBlockedNotificationPacket::decode, ProbabilityBlockedNotificationPacket::handle);
+        CHANNEL.registerMessage(6, RecipeProvenancePacket.class, RecipeProvenancePacket::encode, RecipeProvenancePacket::decode, RecipeProvenancePacket::handle);
     }
 }

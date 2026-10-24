@@ -45,6 +45,8 @@ public class NimblePatternTag {
     private static final String TOOL_TAG = "tool";
     // the probability tag includes: maxWaitingTicks
     private static final String PROBABILITY_TAG = "probability";
+    // the recipe tag includes: id
+    private static final String RECIPE_TAG = "recipe";
 
     public static void removeTag(ItemStack pattern) {
         CompoundTag root = pattern.getTagElement(ROOT);
@@ -258,6 +260,12 @@ public class NimblePatternTag {
         probabilityTag.putLong("maxWaitingTicks", maxWaitingTicks);
         tagPattern(pattern, PROBABILITY_TAG, probabilityTag);
     }
+
+    public static void tagRecipeId(ItemStack pattern, ResourceLocation recipeId) {
+        CompoundTag recipeTag = new CompoundTag();
+        recipeTag.putString("id", recipeId.toString());
+        tagPattern(pattern, RECIPE_TAG, recipeTag);
+    }
     // endregion
 
     // region get functions
@@ -402,6 +410,15 @@ public class NimblePatternTag {
         }
         CompoundTag probabilityTag = root.getCompound(PROBABILITY_TAG);
         return probabilityTag.getLong("maxWaitingTicks");
+    }
+
+    public static ResourceLocation getRecipeId(ItemStack pattern) {
+        CompoundTag root = pattern.getTagElement(ROOT);
+        if (root == null || !root.contains(RECIPE_TAG, Tag.TAG_COMPOUND)) {
+            return null;
+        }
+        CompoundTag recipeTag = root.getCompound(RECIPE_TAG);
+        return ResourceLocation.tryParse(recipeTag.getString("id"));
     }
 
     /**

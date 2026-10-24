@@ -18,20 +18,25 @@ import appeng.core.localization.GuiText;
 import appeng.core.sync.network.NetworkHandler;
 import appeng.core.sync.packets.InventoryActionPacket;
 import appeng.helpers.InventoryAction;
+import com.ber.nimblePattern.NimblePattern;
 import com.ber.nimblePattern.client.gui.panel.*;
 import com.ber.nimblePattern.client.gui.search.PatternSearch;
 import com.ber.nimblePattern.client.gui.widgets.DialogBox;
+import com.ber.nimblePattern.client.gui.widgets.NimbleButton;
+import com.ber.nimblePattern.client.gui.widgets.PatternUpgradeDialog;
 import com.ber.nimblePattern.client.gui.widgets.PatternUpgradeSlot;
 import com.ber.nimblePattern.menu.PatternTagTermMenu;
 import com.ber.nimblePattern.parts.PatternLayout;
 import com.ber.nimblePattern.parts.TagMode;
 import com.ber.nimblePattern.pattern.NimblePatternTag;
+import com.ber.nimblePattern.pattern.upgrade.UpgradeState;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.locale.Language;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.ClickType;
 import net.minecraft.world.inventory.Slot;
@@ -46,8 +51,16 @@ import static com.ber.nimblePattern.menu.SlotSemantics.INPUT_PATTERN;
 import static com.ber.nimblePattern.parts.PatternTagLogic.*;
 
 public class PatternTagTermScreen<C extends PatternTagTermMenu> extends AEBaseScreen<C> {
+    private static final Blitter GRID_LAYOUT_ICON = Blitter.texture(
+            ResourceLocation.fromNamespaceAndPath(NimblePattern.MOD_ID, "textures/guis/grid_layout.png"),
+            16, 16).src(0, 0, 16, 16);
+    private static final Blitter GROUPED_LAYOUT_ICON = Blitter.texture(
+            ResourceLocation.fromNamespaceAndPath(NimblePattern.MOD_ID, "textures/guis/grouped_layout.png"),
+            16, 16).src(0, 0, 16, 16);
     private static final int COLUMNS = 9;
     private static final int MIN_ROWS = 2;
+    private static final int UPGRADE_BUTTON_WIDTH = 28;
+    private static final int UPGRADE_BUTTON_HEIGHT = 14;
     private final TerminalStyle style;
     private final Scrollbar scrollbar;
     private final Scrollbar inputPatternScrollbar;
@@ -70,6 +83,8 @@ public class PatternTagTermScreen<C extends PatternTagTermMenu> extends AEBaseSc
     private boolean patternViewDirty = false;
 
     private long lastDialogRevision = 0;
+    private long lastUpgradePreviewRevision = 0;
+    private final List<NimbleButton> upgradeButtons = new ArrayList<>();
 
     public PatternTagTermScreen(C menu, Inventory playerInventory, Component title, ScreenStyle style) {
         super(menu, playerInventory, title, style);
@@ -79,9 +94,21 @@ public class PatternTagTermScreen<C extends PatternTagTermMenu> extends AEBaseSc
         this.displayModeButton = addToLeftToolbar(new IconButton(button -> toggleDisplayMode()) {
             @Override
             protected Icon getIcon() {
-                return displayMode == PatternLayout.GRID ? Icon.VIEW_MODE_ALL : Icon.SORT_BY_NAME;
+                return Icon.TOOLBAR_BUTTON_BACKGROUND;
+            }
+
+            @Override
+            public void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTicks) {
+                super.renderWidget(graphics, mouseX, mouseY, partialTicks);
+                if (!visible) {
+                    return;
+                }
+                var icon = displayMode == PatternLayout.GRID ? GRID_LAYOUT_ICON : GROUPED_LAYOUT_ICON;
+                icon.opacity(active ? 1.0f : 0.5f).dest(getX(), getY()).blit(graphics);
             }
         });
+        // The base icon supplies the toolbar background; draw it only once.
+        this.displayModeButton.setDisableBackground(true);
         updateDisplayModeButton();
         this.scrollbar = widgets.addScrollBar("scrollbar");
         this.searchField = widgets.addTextField("search");
@@ -179,6 +206,18 @@ public class PatternTagTermScreen<C extends PatternTagTermMenu> extends AEBaseSc
         this.imageHeight = style.getScreenHeight(rows);
         super.init();
         this.updateScrollbar();
+        upgradeButtons.forEach(this::removeWidget);
+        upgradeButtons.clear();
+        for (int r = 0; r < rows; r++) {
+            final int visibleRow = r;
+            var button = new NimbleButton(0, 0, UPGRADE_BUTTON_WIDTH, UPGRADE_BUTTON_HEIGHT, Component.translatable("gui.nimble_pattern.pattern_tag_terminal.upgrade"), btn -> {
+                if (getVisibleRow(visibleRow) instanceof GroupHeaderRow header && header.upgradeable) {
+                    menu.recommendUpgradeRecipe(header.condition.toTagGeneric().toString());
+                }
+            });
+            button.visible = false;
+            upgradeButtons.add(addRenderableWidget(button));
+        }
     }
 
     @Override
@@ -257,11 +296,12 @@ public class PatternTagTermScreen<C extends PatternTagTermMenu> extends AEBaseSc
                 .thenComparing(key -> key.getId().toString()));
         for (var condition : conditions) {
             var group = groups.get(condition);
-            displayRows.add(new GroupHeaderRow(condition));
+            boolean upgradeable = group.stream().anyMatch(pattern -> NimblePatternTag.getStatus(pattern.stack()) == UpgradeState.UPGRADE);
+            displayRows.add(new GroupHeaderRow(condition, upgradeable));
             appendPatternRows(group);
         }
         if (!unassigned.isEmpty()) {
-            displayRows.add(new GroupHeaderRow(null));
+            displayRows.add(new GroupHeaderRow(null, false));
             appendPatternRows(unassigned);
         }
     }
@@ -317,6 +357,11 @@ public class PatternTagTermScreen<C extends PatternTagTermMenu> extends AEBaseSc
 
     @Override
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTicks) {
+        if (menu.upgradePreview.revision() != 0 && menu.upgradePreview.revision() != lastUpgradePreviewRevision) {
+            setUpgradePreviewRevision(menu.upgradePreview.revision());
+            switchToScreen(new PatternUpgradeDialog<>(this));
+            return;
+        }
         // display the dialog box
         if (menu.dialogRevision != lastDialogRevision) {
             lastDialogRevision = menu.dialogRevision;
@@ -325,6 +370,10 @@ public class PatternTagTermScreen<C extends PatternTagTermMenu> extends AEBaseSc
         }
 
         super.render(guiGraphics, mouseX, mouseY, partialTicks);
+    }
+
+    public void setUpgradePreviewRevision(long revision) {
+        lastUpgradePreviewRevision = revision;
     }
 
     @Override
@@ -341,6 +390,13 @@ public class PatternTagTermScreen<C extends PatternTagTermMenu> extends AEBaseSc
         }
         // Build slots before vanilla rendering and hover detection.
         updateSlots();
+
+        for (int r = 0; r < upgradeButtons.size(); r++) {
+            var button = upgradeButtons.get(r);
+            button.visible = !fullUpdateInProgress && getVisibleRow(r) instanceof GroupHeaderRow header && header.upgradeable;
+            button.setX(leftPos + style.getSlotPos(0, COLUMNS - 1).getX() - UPGRADE_BUTTON_WIDTH);
+            button.setY(topPos + style.getSlotPos(r, 0).getY() + 2);
+        }
 
         repositionSlots(INPUT_PATTERN);
         for (int i = 0; i < menu.getInputPatternSlots().length; i++) {
@@ -433,9 +489,9 @@ public class PatternTagTermScreen<C extends PatternTagTermMenu> extends AEBaseSc
                     guiGraphics.renderItem(new ItemStack(AEBlocks.PATTERN_PROVIDER.asItem()), 0, 0);
                 }
                 pose.popPose();
-                var text = font.substrByWidth(header.title(), 145);
-                guiGraphics.drawString(font, Language.getInstance().getVisualOrder(text),
-                        20, y, textColor, false);
+                // trim excessively long text
+                var text = font.substrByWidth(header.title(), header.upgradeable() ? 108 : 145);
+                guiGraphics.drawString(font, Language.getInstance().getVisualOrder(text), 20, y, textColor, false);
             }
         }
     }
@@ -467,24 +523,10 @@ public class PatternTagTermScreen<C extends PatternTagTermMenu> extends AEBaseSc
         style.getBottom().dest(offsetX, y).blit(guiGraphics);
     }
 
-    @Override
-    protected void renderTooltip(GuiGraphics guiGraphics, int mouseX, int mouseY) {
-        int x = mouseX - leftPos;
-        int y = mouseY - topPos - style.getHeader().getSrcHeight();
-        int slotLeft = style.getSlotPos(0, 0).getX() - 1;
-        int rowHeight = style.getRow().getSrcHeight();
-        if (x >= slotLeft && x < slotLeft + COLUMNS * 18 && y >= 0 && y < rows * rowHeight
-                && getVisibleRow(y / rowHeight) instanceof GroupHeaderRow header) {
-            guiGraphics.renderTooltip(font, header.title(), mouseX, mouseY);
-            return;
-        }
-        super.renderTooltip(guiGraphics, mouseX, mouseY);
-    }
-
     private sealed interface DisplayRow permits GroupHeaderRow, PatternRow {
     }
 
-    private record GroupHeaderRow(@Nullable AEKey condition) implements DisplayRow {
+    private record GroupHeaderRow(@Nullable AEKey condition, boolean upgradeable) implements DisplayRow {
         Component title() {
             return condition == null
                     ? Component.translatable("gui.nimble_pattern.pattern_tag_terminal.no_condition")

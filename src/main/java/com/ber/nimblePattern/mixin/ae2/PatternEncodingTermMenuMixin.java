@@ -8,8 +8,12 @@ import appeng.crafting.pattern.AECraftingPattern;
 import appeng.crafting.pattern.AEProcessingPattern;
 import appeng.menu.me.items.PatternEncodingTermMenu;
 import appeng.menu.slot.RestrictedInputSlot;
+import com.ber.nimblePattern.compat.gtceu.GTRecipeUpgradeFinder;
 import com.ber.nimblePattern.pattern.NimblePatternTag;
 import com.ber.nimblePattern.pattern.PatternValidation;
+import com.ber.nimblePattern.pattern.upgrade.RecipeProvenanceMenu;
+import com.gregtechceu.gtceu.api.recipe.GTRecipe;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Final;
@@ -21,9 +25,13 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 @Mixin(value = PatternEncodingTermMenu.class, remap = false)
-public abstract class PatternEncodingTermMenuMixin {
+public abstract class PatternEncodingTermMenuMixin implements RecipeProvenanceMenu {
+    @Unique
+    private ResourceLocation nimblePattern$recipeId = null;
+
     @Shadow
     @Final
     private RestrictedInputSlot encodedPatternSlot;
@@ -83,10 +91,22 @@ public abstract class PatternEncodingTermMenuMixin {
                 }
             }
         } else if (patternDetails instanceof AEProcessingPattern current) {
+            boolean isDifferent = !isSamePattern(previousDecoded, current);
+
             // Determine whether it needs to tag fake information
             if (PatternValidation.isFakePattern(current)) {
-                if (!NimblePatternTag.getFake(previousPattern) || !isSamePattern(previousDecoded, current)) {
+                if (!NimblePatternTag.getFake(previousPattern) || isDifferent) {
                     NimblePatternTag.tagFake(encoded);
+                }
+            }
+
+            // tag recipe ID if it's a GT recipe
+            if (nimblePattern$recipeId != null) {
+                if (!Objects.equals(NimblePatternTag.getRecipeId(previousPattern), nimblePattern$recipeId) || isDifferent) {
+                    var recipe = level.getRecipeManager().byKey(nimblePattern$recipeId).orElse(null);
+                    if (recipe instanceof GTRecipe gt && GTRecipeUpgradeFinder.matches(current, gt)) {
+                        NimblePatternTag.tagRecipeId(encoded, gt.id);
+                    }
                 }
             }
         }
@@ -94,4 +114,12 @@ public abstract class PatternEncodingTermMenuMixin {
         return encoded;
     }
 
+    @Override
+    public void nimblePattern$captureRecipe(String recipeId) {
+        if (recipeId.isEmpty()) {
+            nimblePattern$recipeId = null;
+        } else {
+            nimblePattern$recipeId = ResourceLocation.tryParse(recipeId);
+        }
+    }
 }

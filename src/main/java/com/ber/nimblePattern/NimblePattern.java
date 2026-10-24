@@ -8,6 +8,7 @@ import appeng.core.definitions.AEItems;
 import appeng.core.definitions.AEParts;
 import appeng.items.parts.PartModelsHelper;
 import com.ber.nimblePattern.compat.extendedae.ExtendedAECompat;
+import com.ber.nimblePattern.compat.gtceu.GTRecipeIndex;
 import com.ber.nimblePattern.item.ModCreativeModeTabs;
 import com.ber.nimblePattern.item.ModItems;
 import com.ber.nimblePattern.item.storage.LoopStorageCellHandler;
@@ -18,11 +19,13 @@ import com.ber.nimblePattern.pattern.PatternMapping;
 import com.ber.nimblePattern.pattern.upgrade.PatternUpgradeTracker;
 import com.glodblock.github.extendedae.common.EPPItemAndBlock;
 import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.event.OnDatapackSyncEvent;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.server.ServerStartingEvent;
 import net.minecraftforge.event.server.ServerStoppedEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.ModList;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.config.ModConfig;
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
@@ -63,6 +66,13 @@ public class NimblePattern {
     }
 
     @SubscribeEvent
+    public void onRecipeReload(OnDatapackSyncEvent event) {
+        if (event.getPlayer() == null && ModList.get().isLoaded("gtceu")) {
+            GTRecipeIndex.clear();
+        }
+    }
+
+    @SubscribeEvent
     public void onServerStarting(ServerStartingEvent event) {
         PatternUpgradeTracker.instance().clear();
     }
@@ -71,6 +81,9 @@ public class NimblePattern {
     public void onServerStopped(ServerStoppedEvent event) {
         PatternUpgradeTracker.instance().clear();
         PatternMapping.clear();
+        if (ModList.get().isLoaded("gtceu")) {
+            GTRecipeIndex.clear();
+        }
     }
 
     @SubscribeEvent
