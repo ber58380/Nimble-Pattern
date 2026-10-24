@@ -72,6 +72,7 @@ public class ModEnUsLangProvider extends LanguageProvider {
         add("gui.nimble_pattern.wrong_loop_storage_cell", "Wrong loop storage cell");
         add("gui.nimble_pattern.invalid_loop_data", "Invalid or inconsistent loop metadata");
         add("gui.nimble_pattern.no_loop_patterns", "No loop patterns");
+        add("gui.nimble_pattern.loop_already_encoded", "Clear all existing loop groups first, then encode intersecting loops together");
         add("gui.nimble_pattern.incomplete_loop", "Insert every pattern in the selected loop before clearing");
         add("gui.nimble_pattern.missing_input", "A pattern has no usable primary input");
         add("gui.nimble_pattern.missing_endpoints", "Mark both the loop input and output");

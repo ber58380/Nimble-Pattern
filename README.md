@@ -52,28 +52,35 @@ Encoding the same pattern again removes its fake-pattern tag.
 
 **Loop patterns support processing patterns only.**
 
-For example, consider the following recipes in a Hypercube production loop:
+For example, a Hypercube production chain uses the following recipes:
 
 ```text
 10 B Tachyon-Rich Temporal Fluid -> 10 B Spatial Expansion Fluid
-1 B Spatial Expansion Fluid -> 64 Hypercubes
+16 Transcendent Metal Rods + 1 B Spatial Expansion Fluid -> 64 Hypercubes
 1 Hypercube -> 500 mB Tachyon-Rich Temporal Fluid
+1 Hypercube -> 144 mB Molten Transcendent Metal
+144 mB Molten Transcendent Metal -> 1 Transcendent Metal Ingot
+1 Transcendent Metal Ingot -> 2 Transcendent Metal Rods
 ```
 
-First, balance the recipes so their quantities match across the entire loop:
+This production chain contains two loops with the following structure:
 
 ```text
-10 B Tachyon-Rich Temporal Fluid -> 10 B Spatial Expansion Fluid -> 640 Hypercubes -> 320 B Tachyon-Rich Temporal Fluid
+Hypercube -> Tachyon-Rich Temporal Fluid -> Spatial Expansion Fluid ----------------------------> Hypercube
+Hypercube -> Molten Transcendent Metal -> Transcendent Metal Ingot -> Transcendent Metal Rods -|
 ```
 
-In this example, the loop's input is `Tachyon-Rich Temporal Fluid`, and its output is `Hypercubes`.
-Select the input and output in the Pattern Tag Terminal, then insert a `Loop Storage Cell` to tag the patterns as loop
-patterns.
+`Hypercube` is shared by both loops, so select it as the loop entry.
+Select either `Spatial Expansion Fluid` or `Transcendent Metal Rod` as the loop exit.
+Insert a `Loop Storage Cell` to tag these patterns as loop patterns.
 
 #### Loop Storage Cells
 
-Loop Storage Cells reserve the input material required by a loop.
-In the example above, the cell is configured to store `10 B of Tachyon-Rich Temporal Fluid`.
+Loop Storage Cells are dedicated to storing the entry material required to start a loop.
+In the example above, the cell is configured to store `28 Hypercubes`.
+To make greater use of GT machines' parallel processing capabilities, multiply the pattern quantities when encoding
+them.
+The Loop Storage Cell will then reserve more Hypercubes to start the loop.
 
 When the network contains other storage cells, the contents of Loop Storage Cells are hidden from the terminal.
 Their contents are visible only when the network contains exclusively Loop Storage Cells.
@@ -110,7 +117,7 @@ This repeats until all 10 outputs have been obtained or insufficient materials p
 
 - jecharacters: Enables Pinyin searches in the Pattern Tag Terminal.
 - gtceu, gtlcore, gtladditions, extendedAE: Supports pattern management in the Pattern Buffer family,
-  Molecular Assemblers, Extended Pattern Providers, and Assembler Matrices.
+  Molecular Manipulators, Extended Pattern Providers, and Assembler Matrices.
 
 ## Special Note
 

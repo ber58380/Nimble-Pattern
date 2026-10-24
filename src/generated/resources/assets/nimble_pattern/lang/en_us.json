@@ -5,6 +5,7 @@
   "gui.nimble_pattern.endpoints_not_outputs": "The marked endpoints must be primary pattern outputs",
   "gui.nimble_pattern.incomplete_loop": "Insert every pattern in the selected loop before clearing",
   "gui.nimble_pattern.invalid_loop_data": "Invalid or inconsistent loop metadata",
+  "gui.nimble_pattern.loop_already_encoded": "Clear all existing loop groups first, then encode intersecting loops together",
   "gui.nimble_pattern.loop_amount_overflow": "The calculation of loop patterns is overflow",
   "gui.nimble_pattern.loop_storage_cell_not_enough_capacity": "The loop storage cell doesn't have enough capacity",
   "gui.nimble_pattern.missing_endpoints": "Mark both the loop input and output",

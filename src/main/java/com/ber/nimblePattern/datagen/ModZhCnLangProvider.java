@@ -72,6 +72,7 @@ public class ModZhCnLangProvider extends LanguageProvider {
         add("gui.nimble_pattern.wrong_loop_storage_cell", "错误的循环存储元件");
         add("gui.nimble_pattern.invalid_loop_data", "循环数据无效或同组样板记录不一致");
         add("gui.nimble_pattern.no_loop_patterns", "没有循环样板");
+        add("gui.nimble_pattern.loop_already_encoded", "请先放入相关循环的全部样板并清理旧标记，再将相交循环一起编写");
         add("gui.nimble_pattern.incomplete_loop", "请放入同一循环的全部样板后再清理");
         add("gui.nimble_pattern.missing_input", "存在没有可用主输入的样板");
         add("gui.nimble_pattern.missing_endpoints", "请同时标记循环的入口和出口");

@@ -5,6 +5,7 @@
   "gui.nimble_pattern.endpoints_not_outputs": "标记的入口和出口必须是某个样板的主产物",
   "gui.nimble_pattern.incomplete_loop": "请放入同一循环的全部样板后再清理",
   "gui.nimble_pattern.invalid_loop_data": "循环数据无效或同组样板记录不一致",
+  "gui.nimble_pattern.loop_already_encoded": "请先放入相关循环的全部样板并清理旧标记，再将相交循环一起编写",
   "gui.nimble_pattern.loop_amount_overflow": "循环样板数值计算溢出",
   "gui.nimble_pattern.loop_storage_cell_not_enough_capacity": "循环存储元件容量不足",
   "gui.nimble_pattern.missing_endpoints": "请同时标记循环的入口和出口",

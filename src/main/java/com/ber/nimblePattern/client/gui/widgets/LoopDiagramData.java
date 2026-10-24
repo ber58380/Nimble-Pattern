@@ -28,11 +28,13 @@ public record LoopDiagramData(List<GenericStack> nodes) implements PacketWritabl
     public static LoopDiagramData transform(LoopPatternData loop) {
         var nodes = new ArrayList<GenericStack>();
         nodes.add(loop.entry());
-        nodes.addAll(loop.outputs().subList(0, loop.outputs().size() - 1));
+        for (int i = 0; i < loop.outputs().size() - 1; i++) {
+            var output = loop.outputs().get(i);
+            nodes.add(new GenericStack(output.what(), Math.multiplyExact(output.amount(), loop.operations().get(i))));
+        }
         return new LoopDiagramData(nodes);
     }
 
-    // @GuiSync looks up this constructor reflectively on the client
     public LoopDiagramData(FriendlyByteBuf buffer) {
         this(readNodes(buffer));
     }

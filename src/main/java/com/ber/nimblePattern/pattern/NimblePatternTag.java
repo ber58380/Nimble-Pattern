@@ -242,6 +242,7 @@ public class NimblePatternTag {
         loopTag.putLong("netOutput", data.netOutputAmount());
         loopTag.put("externalInputs", writeGenericStacks(data.externalInputs()));
         loopTag.put("outputs", writeGenericStacks(data.outputs()));
+        loopTag.putLongArray("operations", data.operations().stream().mapToLong(Long::longValue).toArray());
         tagPattern(pattern, LOOP_TAG, loopTag);
     }
 
@@ -388,7 +389,10 @@ public class NimblePatternTag {
                     tag.getLong("seed"),
                     tag.getLong("netOutput"),
                     readGenericStacks(tag.getList("externalInputs", Tag.TAG_COMPOUND)),
-                    readGenericStacks(tag.getList("outputs", Tag.TAG_COMPOUND)));
+                    readGenericStacks(tag.getList("outputs", Tag.TAG_COMPOUND)),
+                    tag.contains("operations", Tag.TAG_LONG_ARRAY)
+                            ? Arrays.stream(tag.getLongArray("operations")).boxed().toList()
+                            : Collections.nCopies(tag.getInt("size"), 1L));
         } catch (RuntimeException ignored) {
             return null;
         }

@@ -76,15 +76,17 @@ public final class LoopCraftingController {
                 return false;
             }
             try {
-                for (var step : resolved) {
+                for (int i = 0; i < resolved.size(); i++) {
+                    var step = resolved.get(i);
+                    long stepOperations = Math.multiplyExact(operations, loopData.operations().get(i));
                     for (var input : step.getPattern().getInputs()) {
-                        long multiplier = Math.multiplyExact(input.getMultiplier(), operations);
+                        long multiplier = Math.multiplyExact(input.getMultiplier(), stepOperations);
                         for (var candidate : input.getPossibleInputs()) {
                             Math.multiplyExact(candidate.amount(), multiplier);
                         }
                     }
                     for (var output : step.getPattern().getOutputs()) {
-                        Math.multiplyExact(output.amount(), operations);
+                        Math.multiplyExact(output.amount(), stepOperations);
                     }
                 }
             } catch (ArithmeticException overflow) {
@@ -151,7 +153,8 @@ public final class LoopCraftingController {
                 return 0;
             }
         }
-        var scaled = new ScaledPattern(raw, batchOperations);
+        long stepOperations = Math.multiplyExact(batchOperations, data.operations().get(stepIndex));
+        var scaled = new ScaledPattern(raw, stepOperations);
         var expectedOutputs = new KeyCounter();
         var expectedContainers = new KeyCounter();
         var holders = CraftingCpuHelper.extractPatternInputs(scaled, working, level, expectedOutputs, expectedContainers);
@@ -161,7 +164,7 @@ public final class LoopCraftingController {
 
         var primary = raw.getPrimaryOutput();
         expectedKey = primary.what();
-        expectedRemaining = Math.multiplyExact(primary.amount(), batchOperations);
+        expectedRemaining = Math.multiplyExact(primary.amount(), stepOperations);
         double power = CraftingCpuHelper.calculatePatternPower(holders);
         if (energyService.extractAEPower(power, Actionable.SIMULATE, PowerMultiplier.CONFIG) < power - 0.01) {
             expectedKey = null;

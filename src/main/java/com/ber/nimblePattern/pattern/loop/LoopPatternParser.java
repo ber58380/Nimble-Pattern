@@ -5,6 +5,7 @@ import appeng.api.stacks.AEKey;
 import appeng.api.stacks.GenericStack;
 import appeng.crafting.pattern.AEProcessingPattern;
 import net.minecraft.world.item.ItemStack;
+import com.ber.nimblePattern.pattern.NimblePatternTag;
 import net.minecraft.world.level.Level;
 
 import java.util.*;
@@ -40,6 +41,9 @@ public final class LoopPatternParser {
         var remaining = new ArrayList<LoopNode>();
         for (int index = 0; index < patterns.size(); index++) {
             var pattern = patterns.get(index);
+            if (NimblePatternTag.getLoop(pattern) != null) {
+                throw new ParseException("loop_already_encoded");
+            }
             var details = PatternDetailsHelper.decodePattern(pattern, level);
             if (!(details instanceof AEProcessingPattern aep)) {
                 throw new ParseException("processing_only");
@@ -63,58 +67,18 @@ public final class LoopPatternParser {
             throw new ParseException("endpoints_not_outputs");
         }
 
-        var ordered = new ArrayList<LoopNode>();
-        var external = new LinkedHashMap<AEKey, Long>();
-        AEKey current = entry.what();
-        long previousOutputAmount = -1;
-        long seedAmount = -1;
-        while (!remaining.isEmpty()) {
-            LoopNode next = null;
-            for (var node : remaining) {
-                if (node.inputs.containsKey(current)) {
-                    if (next != null) {
-                        throw new ParseException("ambiguous_path");
-                    }
-                    next = node;
-                }
-            }
-            if (next == null) {
-                throw new ParseException("broken_path");
-            }
-            long chainAmount = next.inputs.get(current);
-            if (ordered.isEmpty()) {
-                seedAmount = chainAmount;
-            } else if (previousOutputAmount != chainAmount) {
-                throw new ParseException("unbalanced_intermediate");
-            }
-            for (var input : next.inputs.entrySet()) {
-                if (!input.getKey().equals(current)) {
-                    external.merge(input.getKey(), input.getValue(), Math::addExact);
-                }
-            }
-            ordered.add(next);
-            remaining.remove(next);
-            current = next.output.what();
-            previousOutputAmount = next.output.amount();
-            if (current.equals(entry.what())) {
-                break;
-            }
+        LoopGraphPlanner.Plan<AEKey> plan;
+        try {
+            plan = LoopGraphPlanner.plan(remaining.stream()
+                    .map(node -> new LoopGraphPlanner.Recipe<>(node.inputs, node.output.what(), node.output.amount()))
+                    .toList(), entry.what(), exit.what());
+        } catch (IllegalArgumentException e) {
+            throw new ParseException(e.getMessage());
         }
-
-        if (!remaining.isEmpty()) {
-            throw new ParseException("unused_patterns");
-        }
-        if (!current.equals(entry.what())) {
-            throw new ParseException("not_closed");
-        }
-        if (!ordered.get(ordered.size() - 2).output.what().equals(exit.what())) {
-            throw new ParseException("wrong_exit");
-        }
-        if (previousOutputAmount <= seedAmount) {
-            throw new ParseException("no_net_output");
-        }
-
-        var externalInputs = external.entrySet().stream().map(entryAmount -> new GenericStack(entryAmount.getKey(), entryAmount.getValue())).toList();
+        var ordered = plan.order().stream().map(remaining::get).toList();
+        long seedAmount = plan.seed();
+        var externalInputs = plan.external().entrySet().stream()
+                .map(value -> new GenericStack(value.getKey(), value.getValue())).toList();
         var outputs = ordered.stream().map(node -> node.output).toList();
         var loopId = UUID.randomUUID();
         var loopData = new ArrayList<LoopPatternData>(ordered.size());
@@ -127,9 +91,10 @@ public final class LoopPatternParser {
                     new GenericStack(entry.what(), seedAmount),
                     exit,
                     seedAmount,
-                    previousOutputAmount - seedAmount,
+                    plan.netOutput(),
                     externalInputs,
-                    outputs
+                    outputs,
+                    plan.operations()
             ));
         }
         return new LoopChain(
