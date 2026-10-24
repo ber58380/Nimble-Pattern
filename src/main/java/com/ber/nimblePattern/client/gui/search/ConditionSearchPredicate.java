@@ -1,16 +1,14 @@
 package com.ber.nimblePattern.client.gui.search;
 
-import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import appeng.api.stacks.AEKey;
+import com.ber.nimblePattern.compat.jecharacters.PinInHelper;
+import com.ber.nimblePattern.pattern.NimblePatternTag;
 import net.minecraft.world.item.ItemStack;
 
-import java.util.HashMap;
 import java.util.Locale;
-import java.util.Map;
 import java.util.function.Predicate;
 
 final class ConditionSearchPredicate implements Predicate<ItemStack> {
-    private static final Map<ResourceLocation, Component> cachedID = new HashMap<>();
     private final String term;
 
     ConditionSearchPredicate(String term) {
@@ -22,21 +20,11 @@ final class ConditionSearchPredicate implements Predicate<ItemStack> {
         if (term.isEmpty()) {
             return true;
         }
-        return false;
-//        ResourceLocation condition = NimblePatternTag.getCondition(pattern);
-//        if (condition == null) {
-//            return false;
-//        }
-//        Component name = cachedID.computeIfAbsent(condition, id -> {
-//            if (ForgeRegistries.ITEMS.containsKey(id)) {
-//                return Component.translatable(ForgeRegistries.ITEMS.getValue(id).getDescriptionId());
-//            }
-//            if (ForgeRegistries.FLUIDS.containsKey(id)) {
-//                return Component.translatable(ForgeRegistries.FLUIDS.getValue(id).getFluidType().getDescriptionId());
-//            }
-//            return Component.literal(id.toString());
-//        });
-//        String lowerName = name.getString().toLowerCase(Locale.ROOT);
-//        return lowerName.contains(term) || PinInHelper.contains(lowerName, term);
+        AEKey condition = NimblePatternTag.getCondition(pattern);
+        if (condition == null) {
+            return false;
+        }
+        String lowerName = condition.getDisplayName().getString().toLowerCase(Locale.ROOT);
+        return lowerName.contains(term) || PinInHelper.contains(lowerName, term);
     }
 }
