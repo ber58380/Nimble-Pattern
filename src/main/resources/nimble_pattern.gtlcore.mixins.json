@@ -5,7 +5,11 @@
   "refmap": "nimble_pattern.refmap.json",
   "compatibilityLevel": "JAVA_17",
   "mixins": [
-    "GTLBatchProcessingMixin"
+    "GTLBatchProcessingMixin",
+    "CraftingServicePoolAccessor",
+    "CraftingEngineRouterMixin",
+    "GtlExecutionAdapterMixin",
+    "GraphCpuControllerMixin"
   ],
   "client": [
   ],

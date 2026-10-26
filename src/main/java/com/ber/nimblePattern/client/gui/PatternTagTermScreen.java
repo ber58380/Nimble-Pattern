@@ -34,6 +34,7 @@ import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.locale.Language;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -370,6 +371,13 @@ public class PatternTagTermScreen<C extends PatternTagTermMenu> extends AEBaseSc
         }
 
         super.render(guiGraphics, mouseX, mouseY, partialTicks);
+    }
+
+    /**
+     * This is a compatibility method for gtladditions. Highlight hints only in the search box.
+     */
+    public boolean isJeiSearchField(EditBox field) {
+        return field == searchField && field.isVisible() && field.active;
     }
 
     public void setUpgradePreviewRevision(long revision) {

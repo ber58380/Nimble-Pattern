@@ -118,6 +118,7 @@ This repeats until all 10 outputs have been obtained or insufficient materials p
 - jecharacters: Enables Pinyin searches in the Pattern Tag Terminal.
 - gtceu, gtlcore, gtladditions, extendedAE: Supports pattern management in the Pattern Buffer family,
   Molecular Manipulators, Extended Pattern Providers, and Assembler Matrices.
+- gtlcore: Compatible with the graph crafting, only takes over the crafting of patterns that tagged by this mod.
 
 ## Special Note
 

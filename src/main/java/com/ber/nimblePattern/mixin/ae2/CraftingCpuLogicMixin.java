@@ -14,6 +14,7 @@ import appeng.api.stacks.GenericStack;
 import appeng.api.stacks.KeyCounter;
 import appeng.crafting.CraftingLink;
 import appeng.crafting.execution.CraftingCpuLogic;
+import appeng.crafting.execution.CraftingSubmitResult;
 import appeng.crafting.execution.ExecutingCraftingJob;
 import appeng.crafting.inv.ListCraftingInventory;
 import appeng.me.cluster.implementations.CraftingCPUCluster;
@@ -44,7 +45,7 @@ import java.util.Set;
 
 // mod GTLCore will overwrite "executeCrafting", set higher priority to mixin later
 @Mixin(value = CraftingCpuLogic.class, remap = false, priority = 1200)
-public class CraftingCpuLogicMixin {
+public class CraftingCpuLogicMixin implements LoopCpuAccess {
     @Shadow
     @Final
     private CraftingCPUCluster cluster;
@@ -250,6 +251,69 @@ public class CraftingCpuLogicMixin {
         loopController = null;
     }
 
+    @Override
+    public boolean nimblePattern$startLoop(NimbleProcessingPattern composite, KeyCounter[] externalInputs, long operations) {
+        if (loopController == null) {
+            loopController = new LoopCraftingController(cluster);
+        }
+        return loopController.start(composite, externalInputs, operations);
+    }
+
+    @Override
+    public boolean nimblePattern$hasActiveLoop() {
+        return loopController != null && loopController.isActive();
+    }
+
+    @Override
+    public void nimblePattern$tickLoop(CraftingService service, IEnergyService energy) {
+        if (loopController != null && loopController.isActive()) {
+            loopController.tick(service, energy, cluster.getLevel());
+        }
+    }
+
+    @Override
+    public LoopCraftingController.Acceptance nimblePattern$acceptLoopOutput(AEKey key, long amount, Actionable mode) {
+        return loopController == null ? LoopCraftingController.Acceptance.NOT_HANDLED
+                : loopController.acceptOutput(key, amount, mode);
+    }
+
+    @Override
+    public void nimblePattern$deliverLoopRemainder(AEKey key, long amount) {
+        if (amount <= 0) {
+            return;
+        }
+        var cpu = (CraftingCpuLogic) (Object) this;
+        long accepted = cpu.insert(key, amount, Actionable.MODULATE);
+        if (accepted < amount) {
+            inventory.insert(key, amount - accepted, Actionable.MODULATE);
+        }
+    }
+
+    @Override
+    public void nimblePattern$loadGraphLoop(CompoundTag tag) {
+        if (tag == null) {
+            return;
+        }
+        if (loopController != null) {
+            loopController.releaseSeeds(inventory);
+        }
+        loopController = null;
+        try {
+            var controller = new LoopCraftingController(cluster);
+            controller.load(tag);
+            loopController = controller;
+        } catch (RuntimeException ignored) {
+            // Keep the graph CPU loadable even if a saved loop batch is no longer valid. Its job can
+            // still be inspected or cancelled instead of failing the whole CPU NBT read.
+            loopController = null;
+        }
+    }
+
+    @Override
+    public void nimblePattern$finishGraphLoop() {
+        stopLoop();
+    }
+
     @Unique
     private void stopTool() {
         if (toolController != null) {
@@ -314,6 +378,11 @@ public class CraftingCpuLogicMixin {
 
     @Inject(method = "readFromNBT", at = @At("TAIL"))
     private void injectReadFromNBT(CompoundTag tag, CallbackInfo ci) {
+        // GTL graph jobs have no classic ExecutingCraftingJob and load their loop state from
+        // GraphCpuController.read before this tail hook can run (when it runs at all).
+        if (tag.contains("gtlcoreGraphJob", Tag.TAG_COMPOUND)) {
+            return;
+        }
         if (probabilityRetryController != null) {
             probabilityRetryController.release();
         }
@@ -431,6 +500,16 @@ public class CraftingCpuLogicMixin {
             toolController = new ToolCraftingController();
         }
         return toolController;
+    }
+
+    @Inject(method = "trySubmitJob", at = @At("HEAD"), cancellable = true)
+    private void validateLoopSeedsBeforeSubmit(IGrid grid, ICraftingPlan plan, IActionSource source,
+                                               ICraftingRequester requester, CallbackInfoReturnable<ICraftingSubmitResult> cir) {
+        for (var missing : LoopSeedValidation.missing(plan, grid.getStorageService().getInventory())) {
+            cir.setReturnValue(CraftingSubmitResult.missingIngredient(
+                    new GenericStack(missing.getKey(), missing.getLongValue())));
+            return;
+        }
     }
 
     @Inject(method = "trySubmitJob", at = @At("RETURN"))

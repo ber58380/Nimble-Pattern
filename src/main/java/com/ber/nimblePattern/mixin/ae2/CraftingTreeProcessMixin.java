@@ -10,7 +10,6 @@ import com.ber.nimblePattern.pattern.wrapper.NimbleProcessingPattern;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
-import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
@@ -23,9 +22,6 @@ public class CraftingTreeProcessMixin {
     @Shadow
     @Final
     private CraftingCalculation job;
-
-    @Unique
-    private boolean missingLoopSeed;
 
     @Inject(method = "request", at = @At("HEAD"))
     private void validateLoopSeed(CraftingSimulationState inventory, long times, CallbackInfo ci) throws CraftBranchFailure {
@@ -47,10 +43,6 @@ public class CraftingTreeProcessMixin {
         }
         if (!job.isSimulation()) {
             throw new CraftBranchFailure(loopData.entry().what(), loopData.seedAmount());
-        }
-        if (!missingLoopSeed) {
-            calculation.invokeAddMissing(loopData.entry().what(), loopData.seedAmount());
-            missingLoopSeed = true;
         }
     }
 }

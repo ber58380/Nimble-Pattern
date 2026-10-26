@@ -92,6 +92,7 @@ Nimble Pattern是[Applied Energistics 2](https://github.com/AppliedEnergistics/A
 
 - jecharacters: 样板标记终端内可使用拼音进行搜索
 - gtceu, gtlcore, gtladditions, extendedAE: 支持对样板总成系列、分子操纵者、扩展样板供应器和装配矩阵的样板管理
+- gtlcore: 兼容图合成功能，仅接管被本模组标记样板的合成
 
 ## 特别说明
 

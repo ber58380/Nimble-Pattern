@@ -6,6 +6,7 @@
   "compatibilityLevel": "JAVA_17",
   "mixins": [
     "ae2.CraftingCalculationAccessorMixin",
+    "ae2.CraftingCalculationMixin",
     "ae2.CraftingCpuLogicMixin",
     "ae2.CraftingSimulationStateMixin",
     "ae2.CraftingTreeProcessMixin",
